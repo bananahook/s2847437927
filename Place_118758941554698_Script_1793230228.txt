@@ -1,0 +1,335 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.HUDController
+-- Took 0.09s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local players: Players = game:GetService("Players")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local assets = require(shared.Config.Assets)
+local places = require(shared.Config.Places)
+local ranked = require(shared.Config.Ranked)
+local movement = require(shared.Config.Movement)
+local remotes = require(shared.Net.Remotes)
+local format = require(shared.Util.Format)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local clientUi = client.UI
+local notifications = require(clientUi.Notifications)
+local cooldowns = require(clientUi.Cooldowns)
+local impactFrames = require(clientUi.ImpactFrames)
+local bars = require(clientUi.Bars)
+local invites = require(clientUi.Invites)
+local sprayBlind = require(clientUi.SprayBlind)
+local caseDrop = require(clientUi.CaseDrop)
+local confetti = require(clientUi.Core.Confetti)
+local clientControllers = client.Controllers
+local characterController = require(clientControllers.CharacterController)
+local inputController = require(clientControllers.InputController)
+local dataController = require(clientControllers.DataController)
+local cameraController = require(clientControllers.CameraController)
+local LocalPlayer: Player = players.LocalPlayer
+local u26 = nil
+local t1: {[any]: any} = {
+    Attack = "Attack",
+    Shove = "Shove",
+    Slam = "Slam",
+    Stomp = "Stomp",
+    Weave = "Weave",
+    Emotes = "Emote"
+}
+
+local function setupBars(p10)
+    local top_Bar = p10.Other:FindFirstChild("Top_Bar")
+
+    if not top_Bar then
+        return
+    end
+
+    bars.Setup(top_Bar)
+
+    local barsSetStaminaVisible = bars.SetStaminaVisible
+    local v34 = places.IsPro()
+
+    barsSetStaminaVisible(not v34)
+
+    local money = top_Bar:FindFirstChild("Money")
+
+    if money then
+        dataController:Observe("Lunch Money", function(p11)
+            money.Text = "$" .. format.Commas(p11 or 0)
+        end)
+    end
+
+    local rank = top_Bar:FindFirstChild("Rank")
+
+    if rank then
+        local function refreshRank()
+            local v70 = dataController:Get("Level") or 1
+            local v71 = dataController:Get("XP") or 0
+            local v72 = dataController:Get("Max_XP") or 500
+            local uiGradient = rank.Background.Bar:FindFirstChildOfClass("UIGradient")
+
+            if uiGradient then
+                local vector2New = Vector2.new
+                local v75 = math.max(v72, 1)
+                local v76 = math.clamp(v71 / v75, 0, 1)
+
+                uiGradient.Offset = vector2New(v76, 0)
+            end
+
+            local counter = rank.Background:FindFirstChild("Counter")
+
+            if counter then
+                local s1
+
+                if v70 >= 1000 then
+                    s1 = "MAX"
+                else
+                    local v79 = format.Commas(v71)
+                    local v80 = format.Commas(v72)
+
+                    s1 = ("%*/%* EXP"):format(v79, v80)
+                end
+
+                counter.Text = s1
+            end
+
+            local title = rank:FindFirstChild("Title")
+
+            if title then
+                title.Text = tostring(v70)
+            end
+        end
+
+        dataController.Loaded:Connect(refreshRank)
+        dataController.Changed:Connect(function(p12)
+            if p12 == "Level" or p12 == "XP" or p12 == "Max_XP" then
+                refreshRank()
+            end
+        end)
+
+        if dataController:IsLoaded() then
+            refreshRank()
+        end
+    end
+
+    characterController.CharacterAdded:Connect(function(p13, p14)
+        local Humanoid = characterController.Humanoid
+
+        local function refreshHealth()
+            local barsSetHealth = bars.SetHealth
+            local floored = math.floor(Humanoid.Health)
+            local floored2 = math.floor(Humanoid.MaxHealth)
+
+            barsSetHealth(floored, floored2)
+        end
+
+        local barsSetHealth = bars.SetHealth
+        local floored = math.floor(Humanoid.Health)
+        local floored3 = math.floor(Humanoid.MaxHealth)
+
+        barsSetHealth(floored, floored3)
+
+        local barsSetStamina = bars.SetStamina
+        local v91 = p13:GetAttribute("Stamina") or movement.Stamina.Max
+
+        barsSetStamina(v91, movement.Stamina.Max)
+        p14:Connect(Humanoid.HealthChanged, refreshHealth)
+
+        local v92 = Humanoid:GetPropertyChangedSignal("MaxHealth")
+
+        p14:Connect(v92, refreshHealth)
+        p14:Connect(characterController.StateChanged, function(p15, p16)
+            if p15 == "Stamina" then
+                bars.SetStamina(p16 or 0, movement.Stamina.Max)
+            end
+        end)
+    end)
+end
+local function removeJumpButton(p17)
+    task.spawn(function()
+        local touchControlFrame = p17:WaitForChild("TouchControlFrame", 10)
+        local jumpButton = touchControlFrame and touchControlFrame:WaitForChild("JumpButton", 10)
+
+        if jumpButton and inputController:IsMobile() then
+            jumpButton:Destroy()
+        end
+    end)
+end
+local function setupMobileButtons(p18)
+    local mobile = p18:FindFirstChild("Mobile")
+
+    if not mobile then
+        return
+    end
+
+    local touchGui = LocalPlayer.PlayerGui:FindFirstChild("TouchGui")
+
+    if touchGui then
+        task.spawn(function()
+            local touchControlFrame = touchGui:WaitForChild("TouchControlFrame", 10)
+            local jumpButton = touchControlFrame and touchControlFrame:WaitForChild("JumpButton", 10)
+
+            if jumpButton and inputController:IsMobile() then
+                jumpButton:Destroy()
+            end
+        end)
+    end
+
+    LocalPlayer.PlayerGui.ChildAdded:Connect(function(p19)
+        if p19.Name == "TouchGui" then
+            task.spawn(function()
+                local touchControlFrame = p19:WaitForChild("TouchControlFrame", 10)
+                local jumpButton = touchControlFrame and touchControlFrame:WaitForChild("JumpButton", 10)
+
+                if jumpButton and inputController:IsMobile() then
+                    jumpButton:Destroy()
+                end
+            end)
+        end
+    end)
+
+    for key, value in t1 do
+        local foundChild = mobile:FindFirstChild(key)
+        local textButton = foundChild and foundChild:FindFirstChildOfClass("TextButton")
+
+        if textButton then
+            inputController:BindButton(value, textButton)
+        end
+    end
+
+    local sprint = mobile:FindFirstChild("Sprint")
+    local sprintTextButton = sprint and sprint:FindFirstChildOfClass("TextButton")
+
+    if sprintTextButton then
+        sprintTextButton.MouseButton1Down:Connect(function()
+            if characterController:Is("Sprinting") then
+                inputController:Release("Sprint")
+
+                return
+            end
+
+            inputController:Release("Sprint")
+            inputController:Press("Sprint")
+        end)
+    end
+
+    local function refresh()
+        local v98 = inputController:IsMobile()
+        local v99 = characterController:Is("Fighting")
+
+        for iterFirst, iterSecond in mobile:GetChildren() do
+            if iterSecond:IsA("GuiObject") then
+                local stayVisible = iterSecond:GetAttribute("StayVisible")
+                local v103 = places.IsPro()
+
+                if v103 then
+                    v103 = true
+
+                    if iterSecond.Name ~= "Slam" then
+                        v103 = iterSecond.Name == "Sprint"
+                    end
+                end
+
+                local v104 = ranked.IsRatedMatch() and iterSecond.Name == "Slam"
+
+                iterSecond.Visible = v98 and not v103 and not v104 and (stayVisible == true or v99)
+            end
+        end
+
+        local sprint2 = mobile:FindFirstChild("Sprint")
+
+        v98 = sprint2
+
+        if v98 then
+            v98 = sprint2:FindFirstChild("ImageLabel")
+        end
+
+        if v98 then
+            v98.ImageColor3 = if characterController:Is("Sprinting") then Color3.fromRGB(58, 120, 255) else Color3.fromRGB(255, 255, 255)
+        end
+    end
+
+    refresh()
+    inputController.DeviceChanged:Connect(refresh)
+    workspace:GetAttributeChangedSignal("RankedModeOverride"):Connect(refresh)
+    characterController.CharacterAdded:Connect(function(_, p21)
+        refresh()
+        inputController:Release("Sprint")
+        p21:Connect(characterController.StateChanged, function(p22, p23)
+            if p22 == "Fighting" or p22 == "Sprinting" then
+                refresh()
+            end
+
+            if p22 == "Sprinting" and p23 ~= true and inputController:IsMobile() then
+                inputController:Release("Sprint")
+            end
+        end)
+    end)
+end
+
+return {
+    GetGui = function(_)
+        if not u26 then
+            u26 = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Main")
+        end
+
+        return u26
+    end,
+    Notify = function(_, p3, p4, p5, p6)
+        notifications.Show(p3, p4, p5, p6)
+    end,
+    ShowCooldown = function(_, p8, p9)
+        cooldowns.Show(p8, p9)
+    end,
+    Init = function(p24)
+        local v59 = p24:GetGui()
+        local notificationsSetup = notifications.Setup
+        local notifications2 = v59:WaitForChild("Notifications")
+
+        notificationsSetup(notifications2, assets.UI:WaitForChild("NotificationCell"))
+
+        local cooldownsSetup = cooldowns.Setup
+        local cooldowns2 = v59:WaitForChild("Combat"):WaitForChild("Cooldowns")
+
+        cooldownsSetup(cooldowns2, assets.UI:WaitForChild("COOLDOWN_CELL"))
+
+        local impactFramesSetup = impactFrames.Setup
+        local impactFrame = v59:WaitForChild("ImpactFrame")
+
+        impactFramesSetup(impactFrame, assets)
+        impactFrames.Preload(LocalPlayer.PlayerGui)
+        confetti.Setup(v59.Other:WaitForChild("Confetti"))
+        invites.Setup(v59:WaitForChild("Invites"))
+
+        local sprayBlindSetup = sprayBlind.Setup
+        local spraycan = v59:WaitForChild("Spraycan")
+
+        sprayBlindSetup(spraycan:WaitForChild("SprayPatterns"))
+        caseDrop.Setup(v59:WaitForChild("CaseDrop"))
+        setupBars(v59)
+        setupMobileButtons(v59)
+        remotes.Client("NotificationService").Notify:Connect(function(p25, p26, p27, p28)
+            notifications.Show(p25, p26, p27, p28)
+        end)
+        v59 = remotes.Client("CombatService")
+        v59.Cooldown:Connect(function(p29, p30)
+            cooldowns.Show(p29, p30)
+        end)
+        v59.ImpactFrame:Connect(function(p31)
+            impactFrames.Play(p31)
+        end)
+        v59.CutsceneCamera:Connect(function(p32)
+            cameraController:SetCutscene(p32)
+        end)
+        characterController.CharacterRemoving:Connect(function()
+            cooldowns.Clear()
+        end)
+        characterController.Died:Connect(function()
+            cooldowns.Clear()
+        end)
+    end,
+    Start = function(_)
+    end
+}

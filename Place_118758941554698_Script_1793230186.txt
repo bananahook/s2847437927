@@ -1,0 +1,378 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.BossController
+-- Took 0.05s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local players: Players = game:GetService("Players")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local runService: RunService = game:GetService("RunService")
+local tweenService: TweenService = game:GetService("TweenService")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local bosses = require(shared.Config.Bosses)
+local assets = require(shared.Config.Assets)
+local remotes = require(shared.Net.Remotes)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local bossSounds = require(client.World.BossSounds)
+local rarity = require(client.UI.Core.Rarity)
+local strokeScale = require(client.UI.Core.StrokeScale)
+local tweenInfo = TweenInfo.new(0.5)
+local LocalPlayer: Player = players.LocalPlayer
+local t1: {[any]: any} = {}
+local t2 = {}
+
+local function inside(p1, p2)
+    local n1 = p1.CFrame:PointToObjectSpace(p2) / p1.Size
+    local u33: boolean = false
+
+    if math.abs(n1.X) <= 0.5 then
+        u33 = false
+
+        if math.abs(n1.Y) <= 0.5 then
+            u33 = math.abs(n1.Z) <= 0.5
+        end
+    end
+
+    return u33
+end
+local function damageBoard(p3)
+    local t5: {[any]: any} = {}
+
+    for iterFirst, iterSecond in players:GetPlayers() do
+        local text: string = tostring(iterSecond.UserId)
+        local attributeValue = p3:GetAttribute(text)
+
+        if typeof(attributeValue) == "number" and attributeValue > 0 then
+            table.insert(t5, { Player = iterSecond, Damage = attributeValue })
+        end
+    end
+
+    table.sort(t5, function(p4, p5)
+        return p4.Damage > p5.Damage
+    end)
+
+    return t5
+end
+local function fadeMusic(p6, p7)
+    local tweenInfo2 = TweenInfo.new(bosses.MusicFadeSeconds)
+
+    tweenService:Create(p6, tweenInfo2, { Volume = p7 }):Play()
+end
+local function updateBar(p8)
+    local Humanoid = p8.Humanoid
+    local n1 = if Humanoid.MaxHealth > 0 then Humanoid.Health / Humanoid.MaxHealth else 0
+    local bar = p8.Gui.BossBattleFrame.Bar.Canvas.Bar
+    local tweenInfo3 = TweenInfo.new(bosses.BarTweenSeconds)
+    local uDim2 = UDim2.new(n1, 0, 0.5, 0)
+
+    tweenService:Create(bar, tweenInfo3, { Position = uDim2 }):Play()
+end
+local function updateBoard(p9)
+    local leaderboard = p9.Gui.BossBattleFrame.Bar.Leaderboard
+    local v51 = damageBoard(p9.Boss)
+
+    for i = 1, 3 do
+        local v53 = ("Element%*"):format(i)
+        local foundChild = leaderboard:FindFirstChild(v53)
+        local v55 = v51[i]
+
+        if foundChild then
+            foundChild.Visible = v55 ~= nil
+
+            if not v55 then
+                continue
+            end
+
+            local displayName = v55.Player.DisplayName
+            local rounded = math.round(v55.Damage)
+
+            foundChild.Text = ("%*. %* - %*"):format(i, displayName, rounded)
+        end
+    end
+end
+
+local t3: {[any]: any} = {
+    Position = UDim2.new(0.5, 0, -0.1, 0),
+    AnchorPoint = Vector2.new(0.5, 1)
+}
+local t4: {[any]: any} = {
+    Position = UDim2.new(0.5, 0, 0.05, 0),
+    AnchorPoint = Vector2.new(0.5, 0)
+}
+
+local function setInside(p10, inside)
+    if inside == p10.Inside then
+        return
+    end
+
+    p10.Inside = inside
+
+    local v60 = if inside then bosses.MusicVolume else 0
+    local tweenInfo4 = TweenInfo.new(bosses.MusicFadeSeconds)
+
+    tweenService:Create(p10.Music, tweenInfo4, { Volume = v60 }):Play()
+    tweenService:Create(p10.Gui.BossBattleFrame, tweenInfo, if inside then t4 else t3):Play()
+end
+local function watchArea(p12)
+    if not p12:IsA("BasePart") then
+        return
+    end
+
+    task.spawn(function()
+        local boss = p12:WaitForChild("Boss", 10)
+        local bossValue = boss and boss.Value
+        local v106 = bossValue
+
+        if v106 then
+            v106 = bossValue:FindFirstChildOfClass("Humanoid")
+        end
+
+        if not bossValue or not v106 or not not t1[p12] or not p12:IsDescendantOf(workspace) or not bossValue.Parent then
+            return
+        end
+
+        local v107 = bosses.List[bossValue.Name]
+        local v108 = bossSounds.Get(bossValue.Name, "Music")
+
+        if v108 then
+            v108.Looped = true
+            v108.Volume = 0
+            v108.Parent = workspace.CurrentCamera
+            v108:Play()
+        end
+
+        local clone = assets.UI.BossBattleFrame:Clone()
+
+        clone.BossBattleFrame.Position = t3.Position
+        clone.BossBattleFrame.AnchorPoint = t3.AnchorPoint
+        clone.BossBattleFrame.Bar.Display.Text = if v107 then v107.Name else bossValue.Name
+        strokeScale.Attach(clone)
+        clone.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+        local t6: {[any]: any} = {
+            Inside = false,
+            Boss = bossValue,
+            Humanoid = v106,
+            Music = v108,
+            Gui = clone
+        }
+
+        t6.Connection = v106:GetPropertyChangedSignal("Health"):Connect(function()
+            updateBar(t6)
+        end)
+        t1[p12] = t6
+        updateBar(t6)
+    end)
+end
+local function forgetArea(p13)
+    local v64 = t1[p13]
+
+    if not v64 then
+        return
+    end
+
+    t1[p13] = nil
+    v64.Connection:Disconnect()
+    v64.Gui:Destroy()
+
+    if v64.Music then
+        v64.Music:Destroy()
+    end
+end
+local function checkFights()
+    local v65 = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local CFramePosition = workspace.CurrentCamera.CFrame.Position
+
+    for key, value in t1 do
+        local u69: boolean = false
+
+        if value.Boss.Parent ~= nil then
+            u69 = false
+
+            if value.Humanoid.Health > 0 then
+                local n1 = key.CFrame:PointToObjectSpace(CFramePosition) / key.Size
+
+                u69 = false
+
+                if math.abs(n1.X) <= 0.5 then
+                    u69 = false
+
+                    if math.abs(n1.Y) <= 0.5 then
+                        u69 = math.abs(n1.Z) <= 0.5
+                    end
+                end
+
+                if not u69 then
+                    u69 = false
+
+                    if v65 ~= nil then
+                        local n2 = key.CFrame:PointToObjectSpace(v65.Position) / key.Size
+
+                        u69 = false
+
+                        if math.abs(n2.X) <= 0.5 then
+                            u69 = false
+
+                            if math.abs(n2.Y) <= 0.5 then
+                                u69 = math.abs(n2.Z) <= 0.5
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        if u69 ~= value.Inside then
+            value.Inside = u69
+
+            local v72 = if u69 then bosses.MusicVolume else 0
+            local tweenInfo5 = TweenInfo.new(bosses.MusicFadeSeconds)
+
+            tweenService:Create(value.Music, tweenInfo5, { Volume = v72 }):Play()
+            tweenService:Create(value.Gui.BossBattleFrame, tweenInfo, if u69 then t4 else t3):Play()
+        end
+
+        if u69 then
+            updateBoard(value)
+        end
+    end
+end
+local function countdown(p14)
+    local floored = math.floor(p14)
+    local v76 = math.max(floored, 0)
+
+    return string.format("%02i:%02i:%02i", v76 // 3600, v76 // 60 % 60, v76 % 60)
+end
+local function updatePanels(p15)
+    local timestamp = os.time()
+
+    for iterFirst, iterSecond in p15:GetChildren() do
+        local v81 = iterSecond:FindFirstChild("UI") and iterSecond.UI:FindFirstChild("Frame") and iterSecond.UI.Frame:FindFirstChild("Content")
+
+        if v81 then
+            for iterFirst2, iterSecond2 in v81:GetChildren() do
+                if iterSecond2:IsA("Frame") then
+                    iterSecond2.Visible = false
+                end
+            end
+
+            for key, value in t2 do
+                local v86 = ("Element%*"):format(key)
+                local foundChild = v81:FindFirstChild(v86)
+                local v88 = bosses.List[value.Id]
+
+                if foundChild and v88 then
+                    local floored = math.floor(value.At - timestamp)
+                    local v90 = math.max(floored, 0)
+                    local formattedText = string.format("%02i:%02i:%02i", v90 // 3600, v90 // 60 % 60, v90 % 60)
+
+                    foundChild.Frame.Boss.Boss.Icon.Image = v88.Image
+                    foundChild.Frame.Frame.BossName.Shadow.Text = v88.Name
+                    foundChild.Frame.Frame.BossName.Shadow.Top.Text = v88.Name
+                    foundChild.Frame.Frame.BossName.Shadow.Top.TextColor3 = v88.Color
+                    foundChild.Frame.Frame.BossTimer.Shadow.Text = formattedText
+                    foundChild.Frame.Frame.BossTimer.Shadow.Label.Text = formattedText
+
+                    local v92 = rarity.SkinIcon(v88.WeaknessSkin)
+
+                    foundChild.Frame.Weakness.BossIcon.Visible = v92 ~= nil
+                    foundChild.Frame.Weakness.BossIcon.Image = v92 or ""
+                    foundChild.Visible = true
+                end
+            end
+        end
+    end
+end
+
+return {
+    Init = function(_)
+        local bossService = remotes.Client("BossService")
+
+        bossService.Upcoming:Connect(function(p17)
+            t2 = if typeof(p17) == "table" then p17 else {}
+        end)
+        task.spawn(function()
+            local v112 = bossService.GetUpcoming()
+
+            if typeof(v112) == "table" then
+                t2 = v112
+            end
+        end)
+    end,
+    Start = function(_)
+        local v96: Instance = workspace:WaitForChild(bosses.FoldersName.Areas, 30)
+
+        if v96 then
+            for iterFirst, iterSecond in v96:GetChildren() do
+                if iterSecond:IsA("BasePart") then
+                    task.spawn(function()
+                        local boss = iterSecond:WaitForChild("Boss", 10)
+                        local bossValue = boss and boss.Value
+                        local v115 = bossValue
+
+                        if v115 then
+                            v115 = bossValue:FindFirstChildOfClass("Humanoid")
+                        end
+
+                        if not bossValue or not v115 or not not t1[iterSecond] or not iterSecond:IsDescendantOf(workspace) or not bossValue.Parent then
+                            return
+                        end
+
+                        local v116 = bosses.List[bossValue.Name]
+                        local v117 = bossSounds.Get(bossValue.Name, "Music")
+
+                        if v117 then
+                            v117.Looped = true
+                            v117.Volume = 0
+                            v117.Parent = workspace.CurrentCamera
+                            v117:Play()
+                        end
+
+                        local clone = assets.UI.BossBattleFrame:Clone()
+
+                        clone.BossBattleFrame.Position = t3.Position
+                        clone.BossBattleFrame.AnchorPoint = t3.AnchorPoint
+                        clone.BossBattleFrame.Bar.Display.Text = if v116 then v116.Name else bossValue.Name
+                        strokeScale.Attach(clone)
+                        clone.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+                        local t7: {[any]: any} = {
+                            Inside = false,
+                            Boss = bossValue,
+                            Humanoid = v115,
+                            Music = v117,
+                            Gui = clone
+                        }
+
+                        t7.Connection = v115:GetPropertyChangedSignal("Health"):Connect(function()
+                            updateBar(t7)
+                        end)
+                        t1[iterSecond] = t7
+                        updateBar(t7)
+                    end)
+                end
+            end
+
+            v96.ChildAdded:Connect(watchArea)
+            v96.ChildRemoved:Connect(forgetArea)
+        end
+
+        local bossesPanel: Instance = workspace:FindFirstChild("BossesPanel")
+        local n1 = 0
+        local n2 = 0
+
+        runService.Heartbeat:Connect(function()
+            local v120 = os.clock()
+
+            if v120 >= n1 then
+                n1 = v120 + 0.1
+                checkFights()
+            end
+
+            if bossesPanel and v120 >= n2 then
+                n2 = v120 + 1
+                updatePanels(bossesPanel)
+            end
+        end)
+    end
+}

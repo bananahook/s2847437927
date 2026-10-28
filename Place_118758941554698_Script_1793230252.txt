@@ -1,0 +1,551 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.RankedController
+-- Took 0.05s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local players: Players = game:GetService("Players")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local ranked = require(shared.Config.Ranked)
+local remotes = require(shared.Net.Remotes)
+local log = require(shared.Util.Log)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local cinematic = require(client.UI.Ranked.Cinematic)
+local matchHUD = require(client.UI.Ranked.MatchHUD)
+local clientControllers = client.Controllers
+local characterController = require(clientControllers.CharacterController)
+local loadingController = require(clientControllers.LoadingController)
+local rankedPartyController = require(clientControllers.RankedPartyController)
+local uiController = require(clientControllers.UIController)
+local module: {[any]: any} = {}
+local rankedMatch = ranked.Match
+local rankedColors = ranked.Colors
+local t2: {[any]: any} = { "StyleSelection" }
+local LocalPlayer: Player = players.LocalPlayer
+local u20 = nil
+local u21 = nil
+local n1: number = 0
+local n2: number = 0
+
+local function rosterRow(p1)
+    for iterFirst, iterSecond in u21 and u21.Roster or {}, nil, nil do
+        if p1 == iterSecond.UserId then
+            return iterSecond
+        end
+    end
+
+    return nil
+end
+local function fighters(p2, p3)
+    local t4: {[any]: any} = {}
+
+    for iterFirst, iterSecond in u21 and u21.Roster or {}, nil, nil do
+        if (not p2 or not iterSecond.Dead and not iterSecond.Left) and (not p3 or iterSecond.UserId ~= LocalPlayer.UserId) then
+            local player: Player = players:GetPlayerByUserId(iterSecond.UserId)
+            local playerCharacter = player and player.Character
+
+            if playerCharacter and playerCharacter:FindFirstChild("HumanoidRootPart") then
+                table.insert(t4, playerCharacter)
+            end
+        end
+    end
+
+    return t4
+end
+local function picker()
+    return uiController:Get("StyleSelection")
+end
+local function sidesLine()
+    local t5: {[any]: any} = {}
+    local t6: {[any]: any} = {}
+
+    for iterFirst, iterSecond in u21 and u21.Roster or {}, nil, nil do
+        if iterSecond.UserId ~= LocalPlayer.UserId then
+            local v51 = if u21.Rated and iterSecond.Elo then ("%* (%*)"):format(iterSecond.Name, iterSecond.Elo) else iterSecond.Name
+
+            table.insert(if iterSecond.Team == u21.Team then t5 else t6, v51)
+        end
+    end
+
+    local v52 = if #t6 > 0 then ("VS %*"):format((table.concat(t6, ", "))) else ""
+
+    if #t5 > 0 then
+        v52 = ("WITH %*  %*"):format(table.concat(t5, ", "), v52)
+    end
+
+    return v52
+end
+local function enter(p4)
+    if u21 and not u21.Over then
+        return
+    end
+
+    local u54: boolean = u21 ~= nil
+    local v55 = if u54 then u21.WasHidden else uiController:IsHidden()
+
+    n1 += 1
+    n2 += 1
+    matchHUD.ShowResults(nil)
+    u21 = {
+        Roster = p4.Roster or {},
+        Rated = if p4.Rated == true then true else false,
+        WasHidden = v55,
+        Ready = u54
+    }
+
+    if u54 then
+        return
+    end
+
+    uiController:Lock(t2)
+
+    if not v55 then
+        uiController:SetHidden(true)
+    end
+
+    matchHUD.Show()
+    task.spawn(function()
+        loadingController:WaitForFinish()
+
+        if u21 then
+            u21.Ready = true
+            module:_apply()
+        end
+    end)
+end
+local function leave()
+    if not u21 then
+        return
+    end
+
+    local wasHidden = u21.WasHidden
+
+    u21 = nil
+    n1 += 1
+    n2 += 1
+    cinematic.Stop()
+    matchHUD.Hide()
+    uiController:Close("StyleSelection")
+    uiController:Unlock()
+
+    if not wasHidden then
+        uiController:SetHidden(false)
+    end
+end
+local function showPicker()
+    if not uiController:IsOpen("StyleSelection") then
+        uiController:Open("StyleSelection")
+    end
+
+    local v57 = uiController:Get("StyleSelection")
+
+    if v57 and u21.Chosen then
+        v57.SetChosen(u21.Chosen)
+    end
+end
+local function spectate()
+    if u21 and not u21.SpectateStarted then
+        u21.Spectating = true
+        u21.SpectateStarted = true
+        matchHUD.SetBanner("", "KNOCKED OUT  -  SPECTATING")
+        task.delay(ranked.Cinematic.SpectateDelay, function()
+            if u21 and u21.Phase == "Fighting" then
+                cinematic.Start(function()
+                    return (fighters(true, true))
+                end, ranked.Cinematic.SpectateShotSeconds)
+            end
+        end)
+
+        return
+    end
+end
+local function showChoice()
+    if u21 and u21.Over and not u21.Leaving then
+        if not rankedPartyController:InParty() then
+            matchHUD.SetChoice(if u21.Searching then "CANCEL" else "FIND MATCH", "LEAVE", u21.Searching)
+
+            return
+        end
+
+        local v58 = rankedPartyController:Me()
+        local v59 = rankedPartyController:Partner()
+        local v60 = v58 and v58.Ready and not u21.Searching
+        local labels = ranked.Party.Labels
+
+        matchHUD.SetChoice(if u21.Searching then "CANCEL" else if v60 then labels.Waiting else labels.Ready, "LEAVE", u21.Searching, if v60 then rankedColors.Selected else nil)
+
+        if not u21.Searching and v59 then
+            local upperText = string.upper(v59.Name)
+            local footer = ranked.Party.Footer
+            local matchHUDSetFooter = matchHUD.SetFooter
+            local v65 = if not v59.Here then string.format(footer.Away, upperText) else if v60 then string.format(footer.WaitingFor, upperText) else if v59.Ready then string.format(footer.PartnerReady, upperText) else ""
+
+            matchHUDSetFooter(v65)
+        end
+
+        return
+    end
+end
+local function onChoice(p11)
+    if not u21 or not u21.Over or u21.Leaving then
+    elseif p11 == "Leave" then
+        u21.Leaving = true
+        matchHUD.SetChoice(nil, nil)
+        matchHUD.SetFooter("RETURNING TO THE LOBBY...")
+        task.spawn(function()
+            local v111, v112, v113 = pcall(u20.Leave, u20)
+            local u114: boolean = not v111
+
+            if not u114 then
+                u114 = false
+
+                if v112 == false then
+                    u114 = typeof(v113) == "string"
+                end
+            end
+
+            if u114 and u21 and u21.Over and u21.Phase ~= "Returning" then
+                u21.Leaving = false
+
+                local matchHUDSetFooter = matchHUD.SetFooter
+                local v116 = if v111 then string.upper(v113) else ""
+
+                matchHUDSetFooter(v116)
+                showChoice()
+            end
+        end)
+    elseif p11 == "Find" then
+        local v67 = rankedPartyController:InParty() and rankedPartyController:Me()
+        local u68: boolean = not u21.Searching and (not v67 or not v67.Ready)
+
+        task.spawn(function()
+            local v117, v118, v119 = pcall(u20.SetQueued, u20, u68)
+
+            if u21 and u21.Over and (not v117 or v118 == false) then
+                local matchHUDSetFooter = matchHUD.SetFooter
+                local stringUpper = string.upper
+                local v122 = if v117 and typeof(v119) == "string" then v119 else "Matchmaking is unavailable"
+
+                matchHUDSetFooter(stringUpper(v122))
+            end
+        end)
+    end
+end
+local function onQueueState(p12, p13)
+    if not u21 or not u21.Over then
+        return false
+    end
+
+    u21.Searching = p12 == "Searching"
+
+    if p12 == "Searching" then
+        matchHUD.SetFooter("SEARCHING FOR A MATCH...")
+    else
+        if p12 == "Found" then
+            matchHUD.SetFooter("MATCH FOUND")
+            matchHUD.Flash("MATCH FOUND", rankedColors.Selected, 1.5, ranked.HUD.FightSound)
+            n2 += 1
+            matchHUD.SetChoice(nil, nil)
+
+            return true
+        end
+
+        local matchHUDSetFooter = matchHUD.SetFooter
+        local v72 = if p13 and p13.Error then string.upper(p13.Error) else ""
+
+        matchHUDSetFooter(v72)
+    end
+
+    showChoice()
+
+    return true
+end
+
+local t3: {[any]: any} = {
+    Waiting = function(p5)
+        local v74 = sidesLine()
+        local matchHUDSetBanner = matchHUD.SetBanner
+        local v76 = ("%* / %* HERE"):format(p5.Present or 1, p5.Expected or "?")
+        local v77 = if v74 == "" then "" else ("  -  %*"):format(v74)
+
+        matchHUDSetBanner("WAITING FOR PLAYERS", v76 .. v77)
+        matchHUD.SetTimer(p5.EndsAt)
+        cinematic.Start(function()
+            return (fighters(false, false))
+        end)
+    end,
+    Selecting = function(p6)
+        u21.Chosen = u21.Chosen or p6.Chosen
+        matchHUD.SetBanner("", "")
+        matchHUD.SetTimer(p6.EndsAt)
+        cinematic.Start(function()
+            return (fighters(false, false))
+        end)
+
+        if not uiController:IsOpen("StyleSelection") then
+            uiController:Open("StyleSelection")
+        end
+
+        local v79 = uiController:Get("StyleSelection")
+
+        if v79 and u21.Chosen then
+            v79.SetChosen(u21.Chosen)
+        end
+    end,
+    Countdown = function(p7)
+        uiController:Close("StyleSelection")
+
+        local v81 = sidesLine()
+        local matchHUDSetBanner = matchHUD.SetBanner
+        local v83 = if u21.Chosen then string.upper(u21.Chosen) else ""
+        local v84 = if v81 == "" then "" else ("  -  %*"):format(v81)
+
+        matchHUDSetBanner("GET READY", v83 .. v84)
+        matchHUD.SetTimer(nil)
+        cinematic.Start(function()
+            return (fighters(false, false))
+        end)
+        cinematic.FocusSelf(p7.Seconds or rankedMatch.Countdown)
+        n1 += 1
+
+        local matchHUDCountdown = matchHUD.Countdown
+        local v86 = p7.EndsAt
+
+        if not v86 then
+            v86 = workspace:GetServerTimeNow() + (p7.Seconds or rankedMatch.Countdown)
+        end
+
+        matchHUDCountdown(v86)
+    end,
+    Fighting = function(p8)
+        n1 += 1
+        uiController:Close("StyleSelection")
+        matchHUD.SetBanner("", "")
+        matchHUD.SetTimer(p8.EndsAt)
+
+        if u21.Spectating then
+            spectate()
+
+            return
+        end
+
+        cinematic.Stop(true)
+        matchHUD.Flash("FIGHT!", rankedColors.Selected, 0.9, ranked.HUD.FightSound)
+    end,
+    Results = function(p9)
+        u21.Over = true
+        matchHUD.SetTimer(nil)
+        matchHUD.SetBanner("", "")
+        matchHUD.ShowResults({
+            Winner = p9.Winner,
+            Rows = p9.Rows,
+            Rated = u21.Rated,
+            Reason = p9.Reason
+        }, u21.Team)
+        cinematic.Start(function()
+            local v123 = fighters(true, false)
+
+            if #v123 > 0 then
+                return v123
+            end
+
+            return (fighters(false, false))
+        end, ranked.Cinematic.SpectateShotSeconds)
+        n2 += 1
+
+        local v89: number = n2
+
+        task.delay(rankedMatch.ChoiceDelay, function()
+            if v89 == n2 then
+                showChoice()
+            end
+        end)
+    end,
+    Returning = function(_)
+        u21.Over = true
+        u21.Leaving = true
+        n2 += 1
+        matchHUD.SetTimer(nil)
+        matchHUD.SetChoice(nil, nil)
+        matchHUD.SetFooter("RETURNING TO THE LOBBY...")
+        task.delay(6, function()
+            if u21 and u21.Phase == "Returning" then
+                leave()
+            end
+        end)
+    end
+}
+
+function module._apply(_)
+    if not u21 or not u21.Ready then
+        return
+    end
+
+    local v92 = t3[u21.Phase]
+
+    if v92 then
+        v92(u21.Detail or {})
+    end
+end
+local function onPhase(phase, p16)
+    local player = p16 or {}
+
+    if phase == "Roster" then
+        if u21 then
+            u21.Roster = player.Roster or u21.Roster
+
+            if u21.Ready and u21.Phase == "Waiting" then
+                module:_apply()
+            end
+        end
+    elseif phase == "Chosen" then
+        if u21 then
+            u21.Chosen = player.Style
+
+            local v96 = uiController:Get("StyleSelection")
+
+            if v96 then
+                v96.SetChosen(player.Style)
+            end
+        end
+    elseif phase ~= "Death" then
+        if not t3[phase] then
+            return
+        end
+
+        if not u21 then
+            if phase == "Returning" then
+                return
+            end
+
+            enter(player)
+        elseif u21.Over and phase ~= "Results" and phase ~= "Returning" then
+            enter(player)
+        end
+
+        u21.Phase = phase
+        u21.Detail = player
+        u21.Roster = player.Roster or u21.Roster
+        u21.Rated = player.Rated == true
+
+        local localPlayerUserId = LocalPlayer.UserId
+        local v98: boolean = false
+        local v99
+
+        for iterFirst, iterSecond in u21 and u21.Roster or {}, nil, nil do
+            if localPlayerUserId == iterSecond.UserId then
+                v99 = iterSecond
+                v98 = true
+
+                break
+            end
+        end
+
+        if not v98 then
+            v99 = nil
+        end
+
+        u21.Team = v99 and v99.Team or u21.Team
+
+        if player.Chosen then
+            u21.Chosen = player.Chosen
+        end
+
+        module:_apply()
+    elseif u21 then
+        u21.Roster = player.Roster or u21.Roster
+
+        if player.UserId == LocalPlayer.UserId then
+            u21.Spectating = true
+
+            if u21.Ready and u21.Phase == "Fighting" then
+                spectate()
+
+                return
+            end
+        elseif u21.Ready and u21.Phase == "Fighting" then
+            local userId = player.UserId
+            local v103: boolean = false
+            local v104
+
+            for iterFirst2, iterSecond2 in u21 and u21.Roster or {}, nil, nil do
+                if userId == iterSecond2.UserId then
+                    v104 = iterSecond2
+                    v103 = true
+
+                    break
+                end
+            end
+
+            if not v103 then
+                v104 = nil
+            end
+
+            if v104 then
+                local matchHUDFlash = matchHUD.Flash
+                local v108 = ("%* IS DOWN"):format((string.upper(v104.Name)))
+
+                matchHUDFlash(v108, if v104.Team == u21.Team then rankedColors.Loss else rankedColors.Win, 1.2)
+            end
+        end
+
+        return
+    end
+end
+function module.Init(_)
+    u20 = remotes.Client("RankedService")
+    u20.Phase:Connect(onPhase)
+    matchHUD.OnChoice(onChoice)
+    rankedPartyController.Changed:Connect(showChoice)
+    u20.QueueState:Connect(function(p18, p19)
+        if onQueueState(p18, p19) then
+        elseif p18 == "Found" and not u21 then
+            matchHUD.Show()
+            matchHUD.Flash("MATCH FOUND", rankedColors.Selected, 1.5, ranked.HUD.FightSound)
+            task.delay(4, function()
+                if not u21 then
+                    matchHUD.Hide()
+                end
+            end)
+        end
+    end)
+    uiController.Closed:Connect(function(p20)
+        if p20 == "StyleSelection" and u21 and u21.Phase == "Selecting" and u21.Ready then
+            task.defer(function()
+                if u21 and u21.Phase == "Selecting" then
+                    if not uiController:IsOpen("StyleSelection") then
+                        uiController:Open("StyleSelection")
+                    end
+
+                    local v132 = uiController:Get("StyleSelection")
+
+                    if v132 and u21.Chosen then
+                        v132.SetChosen(u21.Chosen)
+                    end
+                end
+            end)
+        end
+    end)
+    characterController.CharacterAdded:Connect(function()
+        if u21 and u21.Phase == "Returning" then
+            leave()
+        end
+    end)
+end
+function module.Start(_)
+    task.spawn(function()
+        local v127, v128, v129 = pcall(u20.GetPhase, u20)
+
+        if v127 and typeof(v128) == "string" then
+            onPhase(v128, v129)
+        elseif not v127 then
+            local logWarn = log.warn
+            local v131 = ("GetPhase failed: %*"):format(v128)
+
+            logWarn("RankedController", v131)
+        end
+    end)
+end
+
+return module

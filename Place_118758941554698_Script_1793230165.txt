@@ -1,0 +1,205 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Combat.HitWindow
+-- Took 0.03s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local classes = require(shared.Config.Classes)
+local remotes = require(shared.Net.Remotes)
+local movers = require(shared.Util.Movers)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local attackState = require(client.Combat.AttackState)
+local hitboxes = require(client.Combat.Hitboxes)
+local characterController = require(client.Controllers.CharacterController)
+local t1: {[any]: any} = {
+    "RightHand",
+    "LeftHand",
+    "LowerTorso",
+    "UpperTorso",
+    "Hand.R",
+    "Hand.L"
+}
+local t2: {[any]: any} = { "RightHand", "LeftHand", "LowerTorso", "LeftFoot", "RightFoot" }
+local attackStateActive = attackState.Active
+local u13 = nil
+local u14 = nil
+local object = setmetatable({}, { __mode = "k" })
+
+local function combatRemotes()
+    if not u14 then
+        u14 = remotes.Client("CombatService")
+    end
+
+    return u14
+end
+local function hitboxNames(p1, p2)
+    if p1 == "Shove" then
+        return t1
+    end
+
+    if p1 == "Slam" or p1 == "ATrain" then
+        return t2
+    end
+
+    local v22 = hitboxes.ForLimb(p2)
+
+    if v22 then
+        return { v22 }
+    end
+
+    return {}
+end
+
+local module: {[any]: any} = {
+    Stop = function()
+        u13 = nil
+        hitboxes.Stop()
+    end,
+    Start = function(p3, p4: string, p5, p6)
+        if not characterController:IsAlive() then
+            return
+        end
+
+        local v27 = attackStateActive
+
+        v27.Seq = v27.Seq + 1
+
+        local attackStateActiveSeq = attackStateActive.Seq
+
+        if p4 == nil or p4 == "" then
+            p4 = "RightHand"
+        end
+
+        if not u14 then
+            u14 = remotes.Client("CombatService")
+        end
+
+        u14.Swing:Fire(attackStateActiveSeq, p3, p4)
+        u13 = { Track = p5, Play = p5 and attackState.PlayOf(p5) }
+        local v29 = hitboxNames(p3, p4)
+
+        if p3 == "Attack" or p3 == "Stomp" then
+            local characterControllerRoot = characterController.Root
+
+            movers.Remove(characterControllerRoot, "SwingMove")
+
+            local v31 = attackState.StyleName()
+            local v32 = classes[v31]
+
+            if v32 and v32.Move ~= nil then
+                movers.Create("BodyPosition", "SwingMove", {
+                    MaxForce = Vector3.new(300000, 0, 300000),
+                    P = 10,
+                    D = 0,
+                    Position = (characterControllerRoot.CFrame * CFrame.new(0, 0, -5)).Position
+                }, characterControllerRoot, 0.3)
+            end
+        end
+
+        hitboxes.Start(v29, function(p7, p8)
+            if p3 == "Attack" or p3 == "Heavy" or p3 == "Stomp" then
+                attackStateActive.OpenFrame = true
+            end
+
+            if not u14 then
+                u14 = remotes.Client("CombatService")
+            end
+
+            u14.HitReport:Fire(attackStateActiveSeq, p7, p8.Position)
+
+            if p7.Parent:GetAttribute("Infinity") and attackStateActive.CurrentM1 then
+                local attackStateActiveCurrentM1 = attackStateActive.CurrentM1
+
+                attackStateActiveCurrentM1:AdjustSpeed(0)
+                task.spawn(function()
+                    local characterControllerRoot = characterController.Root
+
+                    repeat
+                        task.wait()
+                    until not characterControllerRoot or not characterControllerRoot.Parent or (characterControllerRoot.Position - p7.Position).Magnitude > 4 or attackStateActive.CurrentM1 ~= attackStateActiveCurrentM1
+
+                    if attackStateActive.CurrentM1 == attackStateActiveCurrentM1 then
+                        attackStateActiveCurrentM1:AdjustSpeed(1)
+                    end
+                end)
+            end
+        end, p3 == "ATrain", p6)
+    end
+}
+
+local function arm(p9, p10: string, p11, p12)
+    if u13 and p11 == u13.Track and u13.Play == attackState.PlayOf(p11) then
+        if not hitboxes.IsOpen() then
+            return
+        end
+
+        if p10 == nil or p10 == "" then
+            p10 = if p12 == "Other" then "LeftHand" else "RightHand"
+        end
+
+        local hitboxesAdd = hitboxes.Add
+        local v38 = hitboxNames(p9, p10)
+
+        hitboxesAdd(p12, v38)
+
+        return
+    end
+
+    if p12 == "Other" and (p10 == nil or p10 == "") then
+        p10 = "LeftHand"
+    end
+
+    module.Start(p9, p10, p11, p12)
+end
+function module.Wire(p13, p14, p15)
+    if p13 and not object[p13] then
+        object[p13] = true
+        p13:GetMarkerReachedSignal("Start"):Connect(function(p16)
+            if not attackState.IsDead(p13) then
+                arm(p14, p16, p13, "Main")
+            end
+        end)
+        p13:GetMarkerReachedSignal("OtherStart"):Connect(function(p17)
+            if not attackState.IsDead(p13) then
+                arm(p14, p17, p13, "Other")
+            end
+        end)
+        p13:GetMarkerReachedSignal("OtherStop"):Connect(function()
+            if attackState.IsDead(p13) then
+                return
+            end
+
+            if not hitboxes.StopGroup("Other") then
+                module.Stop()
+            end
+        end)
+        p13:GetMarkerReachedSignal("Stop"):Connect(function()
+            if attackState.IsDead(p13) then
+                return
+            end
+
+            module.Stop()
+
+            if p15 then
+                p15()
+
+                return
+            end
+
+            attackStateActive.CanAttack = true
+        end)
+
+        return
+    end
+end
+function module.WireM1s(p18)
+    if p18 then
+        for iterFirst, iterSecond in p18.M1s, nil, nil do
+            module.Wire(iterSecond, "Attack")
+        end
+    end
+end
+
+return module

@@ -1,0 +1,151 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Combat.Weave
+-- Took 0.04s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local remotes = require(shared.Net.Remotes)
+local movers = require(shared.Util.Movers)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local attackState = require(client.Combat.AttackState)
+local characterController = require(client.Controllers.CharacterController)
+local attackStateActive = attackState.Active
+local u9 = nil
+
+local function combatRemotes()
+    if not u9 then
+        u9 = remotes.Client("CombatService")
+    end
+
+    return u9
+end
+
+local module: {[any]: any} = {
+    StopTrack = function()
+        if attackStateActive.CurrentWeave then
+            if attackStateActive.CurrentWeave.IsPlaying then
+                attackStateActive.CurrentWeave:Stop()
+            end
+
+            attackStateActive.CurrentWeave = nil
+
+            if not u9 then
+                u9 = remotes.Client("CombatService")
+            end
+
+            u9.Weave:Fire(false)
+        end
+    end
+}
+
+function module.Set(p1)
+    local Humanoid = characterController.Humanoid
+
+    if p1 then
+        if characterController:InCombat() and not characterController:Is("Occupied") and not attackStateActive.Weaving and not characterController:Is("Sprinting") and (not not attackStateActive.CanAttack or not not attackStateActive.OpenFrame) then
+            attackStateActive.OpenFrame = false
+            attackStateActive.Weaving = true
+            Humanoid.WalkSpeed = 0
+
+            return
+        end
+
+        return
+    end
+
+    if not attackStateActive.Weaving then
+        return
+    end
+
+    attackStateActive.Weaving = false
+
+    if Humanoid then
+        Humanoid.WalkSpeed = characterController:Get("WalkSpeed") or Humanoid.WalkSpeed
+    end
+
+    module.StopTrack()
+end
+function module.Play(weavedInDirection, p3)
+    local v16 = attackState.StyleSet()
+    local currentWeave = v16 and v16.Weave[weavedInDirection]
+
+    if not currentWeave or not attackStateActive.Weaving then
+        return
+    end
+
+    if currentWeave == attackStateActive.CurrentWeave then
+        return
+    end
+
+    if attackStateActive.CurrentWeave and attackStateActive.CurrentWeave.IsPlaying then
+        attackStateActive.CurrentWeave:Stop()
+    end
+
+    attackStateActive.CurrentWeave = currentWeave
+    currentWeave:Play()
+
+    if not u9 then
+        u9 = remotes.Client("CombatService")
+    end
+
+    u9.Weave:Fire(true)
+
+    local characterControllerRoot = characterController.Root
+
+    if characterControllerRoot:FindFirstChildOfClass("BodyPosition") then
+        characterControllerRoot:FindFirstChildOfClass("BodyPosition"):Destroy()
+
+        return
+    end
+
+    if weavedInDirection == attackStateActive.WeavedInDirection then
+        return
+    end
+
+    attackStateActive.WeavedInDirection = weavedInDirection
+
+    if attackStateActive.WeaveMoveDebounce then
+        return
+    end
+
+    attackStateActive.WeaveMoveDebounce = true
+    movers.Create("BodyPosition", "WeaveMove", {
+        MaxForce = Vector3.new(30000, 0, 30000),
+        P = 220,
+        D = 0,
+        Position = p3.Position
+    }, characterControllerRoot, 0.1)
+    task.delay(0.3, function()
+        attackStateActive.WeaveMoveDebounce = false
+    end)
+end
+function module.Reset()
+    attackStateActive.Weaving = false
+
+    local Humanoid = characterController.Humanoid
+
+    if Humanoid and Humanoid.WalkSpeed <= 0 then
+        Humanoid.WalkSpeed = characterController:Get("WalkSpeed") or 10
+    end
+
+    if attackStateActive.CurrentWeave then
+        if attackStateActive.CurrentWeave.IsPlaying then
+            attackStateActive.CurrentWeave:Stop(0.5)
+        end
+
+        attackStateActive.CurrentWeave = nil
+    end
+
+    if not u9 then
+        u9 = remotes.Client("CombatService")
+    end
+
+    u9.Weave:Fire(false)
+    movers.Remove(characterController.Root, "WeaveMove")
+    attackStateActive.WeavedInDirection = nil
+    attackStateActive.WeaveMoveDebounce = false
+end
+
+return module

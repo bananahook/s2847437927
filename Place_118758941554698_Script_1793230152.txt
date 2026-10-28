@@ -1,0 +1,173 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Combat.AttackState
+-- Took 0.05s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local client: Instance = game:GetService("ReplicatedStorage"):WaitForChild("Client")
+local animations = require(client.Combat.Animations)
+local clientControllers = client.Controllers
+local characterController = require(clientControllers.CharacterController)
+local dataController = require(clientControllers.DataController)
+local t1: {[any]: any} = {}
+
+local module: {[any]: any} = {
+    Active = t1,
+    Reset = function()
+        table.clear(t1)
+        t1.CanAttack = true
+        t1.Combo = 1
+        t1.OpenFrame = false
+        t1.Weaving = false
+        t1.Shoving = false
+        t1.Slamming = false
+        t1.Stomping = false
+        t1.HeavyPunch = false
+        t1.CanHeavy = false
+        t1.M1Patch = true
+        t1.Seq = 0
+        t1.CurrentM1 = nil
+        t1.CurrentAction = nil
+        t1.CurrentKind = nil
+        t1.Cancels = 0
+        t1.FollowThrough = {}
+        t1.CurrentWeave = nil
+        t1.WeavedInDirection = nil
+        t1.WeaveMoveDebounce = false
+        t1.ReequipFists = false
+        t1.Busy = false
+    end
+}
+
+module.Reset()
+
+function module.StyleName()
+    return characterController:Get("Style") or dataController:Get("Class") or "Amateur"
+end
+function module.StyleSet()
+    return animations.Style(characterController.Animator, module.StyleName())
+end
+function module.CanAct()
+    local v13 = characterController
+    local v14 = v13:InCombat() and t1.CanAttack
+
+    if v14 then
+        v14 = not v13:Is("Knocked")
+
+        if v14 then
+            v14 = not v13:Is("Shoved")
+
+            if v14 then
+                v14 = not v13:Is("Grabbing") and not v13:Is("Grabbed") and not v13:Is("Slamming") and not t1.Weaving
+
+                if v14 then
+                    v14 = not v13:Is("Occupied") or v13:Is("Holding")
+                end
+            end
+        end
+    end
+
+    return v14
+end
+
+local object = setmetatable({}, { __mode = "k" })
+
+function module.IsDead(p1)
+    return object[p1] == true
+end
+
+local object2 = setmetatable({}, { __mode = "k" })
+
+function module.Revive(p2)
+    object[p2] = nil
+    object2[p2] = (object2[p2] or 0) + 1
+end
+function module.PlayOf(p3)
+    return object2[p3] or 0
+end
+function module.StopCurrentM1()
+    if t1.CurrentM1 then
+        t1.CurrentM1:Stop()
+        t1.CurrentM1 = nil
+    end
+
+    for iterFirst, iterSecond in t1.FollowThrough, nil, nil do
+        if iterSecond.IsPlaying then
+            iterSecond:Stop()
+        end
+    end
+
+    table.clear(t1.FollowThrough)
+end
+local function followThrough(p4)
+    object[p4] = true
+
+    if p4.IsPlaying then
+        table.insert(t1.FollowThrough, p4)
+    end
+end
+
+local t3: {[any]: any} = { Shove = true, Slam = true, Stomp = true }
+
+local function cutAction()
+    if t1.CurrentAction then
+        local currentAction = t1.CurrentAction
+
+        object[currentAction] = true
+
+        if currentAction.IsPlaying then
+            table.insert(t1.FollowThrough, currentAction)
+        end
+
+        t1.CurrentAction = nil
+        t1.CurrentKind = nil
+    end
+end
+function module.HeavyInProgress()
+    local u22 = false
+
+    if t1.CurrentKind == "Heavy" then
+        u22 = false
+
+        if t1.CurrentAction ~= nil then
+            u22 = t1.CurrentAction.IsPlaying
+        end
+    end
+
+    return u22
+end
+function module.Cancel()
+    if module.HeavyInProgress() then
+        return false
+    end
+
+    if t1.CurrentM1 then
+        object[t1.CurrentM1] = true
+        t1.CurrentM1:Stop(0)
+        t1.CurrentM1 = nil
+    end
+
+    if (t1.CurrentKind == nil or t3[t1.CurrentKind]) and t1.CurrentAction then
+        local currentAction = t1.CurrentAction
+
+        object[currentAction] = true
+
+        if currentAction.IsPlaying then
+            table.insert(t1.FollowThrough, currentAction)
+        end
+
+        t1.CurrentAction = nil
+        t1.CurrentKind = nil
+    end
+
+    local v24: {[any]: any} = t1
+
+    v24.Cancels = v24.Cancels + 1
+    t1.CanAttack = true
+    t1.OpenFrame = false
+    t1.CanHeavy = false
+
+    return true
+end
+
+return module

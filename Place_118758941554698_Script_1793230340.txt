@@ -1,0 +1,104 @@
+-- Script Path: game:GetService("ReplicatedStorage").Shared.Config.Heavys
+-- Took 0.02s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+return {
+    ["Drop Kick"] = {
+        Damage = 11.2,
+        Knockback = 36,
+        Speed = 0.9,
+        Store = {
+            CanBeSold = true,
+            Required_Kills = 0,
+            Required_Level = 0,
+            Required_Money = 0,
+            Required_Respect = 4500
+        }
+    },
+    ["Flying Kick"] = {
+        Damage = 10.2,
+        Knockback = 30,
+        Speed = 1,
+        Store = {
+            CanBeSold = true,
+            Required_Kills = 0,
+            Required_Level = 0,
+            Required_Money = 0,
+            Required_Respect = 2000
+        }
+    },
+    ["Flying Knee"] = {
+        Damage = 16.2,
+        Knockback = 35,
+        Speed = 1,
+        Store = {
+            CanBeSold = true,
+            Required_Kills = 0,
+            Required_Level = 0,
+            Required_Money = 0,
+            Required_Respect = 12500
+        }
+    },
+    ["Hard Swing"] = {
+        Damage = 8,
+        Knockback = 22.54,
+        Speed = 1,
+        Store = {
+            CanBeSold = true,
+            Required_Kills = 0,
+            Required_Level = 0,
+            Required_Money = 0,
+            Required_Respect = 250
+        }
+    },
+    ["Heavy Haymaker"] = {
+        Damage = 7,
+        Knockback = 20,
+        Speed = 1,
+        Store = {
+            CanBeSold = true,
+            Required_Kills = 0,
+            Required_Level = 0,
+            Required_Money = 0,
+            Required_Respect = 0
+        }
+    },
+    ["Side Kick"] = {
+        Damage = 9.5,
+        Knockback = 24.72,
+        Speed = 1.05,
+        Store = {
+            CanBeSold = true,
+            Required_Kills = 0,
+            Required_Level = 0,
+            Required_Money = 0,
+            Required_Respect = 1000
+        }
+    },
+    ["Strong Shove"] = {
+        Damage = 7.2,
+        Knockback = 15,
+        Speed = 1,
+        Store = {
+            CanBeSold = true,
+            Required_Kills = 0,
+            Required_Level = 0,
+            Required_Money = 0,
+            Required_Respect = 100
+        }
+    },
+    Truck = {
+        Damage = 12.2,
+        Knockback = 40,
+        Speed = 1,
+        Store = {
+            CanBeSold = true,
+            Required_Kills = 0,
+            Required_Level = 0,
+            Required_Money = 0,
+            Required_Respect = 8500
+        }
+    }
+}

@@ -1,0 +1,283 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Combat.Attacks
+-- Took 0.05s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local classes = require(shared.Config.Classes)
+local weapons = require(shared.Config.Weapons)
+local places = require(shared.Config.Places)
+local ranked = require(shared.Config.Ranked)
+local remotes = require(shared.Net.Remotes)
+local movers = require(shared.Util.Movers)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local animations = require(client.Combat.Animations)
+local attackState = require(client.Combat.AttackState)
+local hitWindow = require(client.Combat.HitWindow)
+local clientControllers = client.Controllers
+local characterController = require(clientControllers.CharacterController)
+local dataController = require(clientControllers.DataController)
+local hudController = require(clientControllers.HUDController)
+local attackStateActive = attackState.Active
+
+local function character()
+    return characterController.Character
+end
+local function holdingWeapon()
+    local Character = characterController.Character
+
+    return Character ~= nil and Character:FindFirstChild("Weapon") ~= nil
+end
+
+local module: {[any]: any} = {
+    Cooldowns = { Heavy = 6.5, Shove = 5, Slam = 13, Stomp = 1 }
+}
+
+function module.Heavy()
+    local animationsHeavy = animations.Heavy
+    local characterControllerAnimator = characterController.Animator
+    local v24 = dataController:Get("Heavy")
+    local currentAction = animationsHeavy(characterControllerAnimator, v24 or "")
+
+    if not currentAction then
+        return
+    end
+
+    attackStateActive.CanAttack = false
+    attackStateActive.HeavyPunch = true
+    remotes.Client("CombatService").Sprint:Fire(false)
+    attackState.StopCurrentM1()
+
+    local characterControllerRoot = characterController.Root
+
+    hitWindow.Wire(currentAction, "Heavy", function()
+        movers.Remove(characterControllerRoot, "HeavyAttack")
+        attackStateActive.CanAttack = true
+    end)
+    attackStateActive.CurrentAction = currentAction
+    attackStateActive.CurrentKind = "Heavy"
+    attackState.Revive(currentAction)
+    currentAction:Play()
+    currentAction:AdjustSpeed(1.2)
+    movers.Create("BodyPosition", "HeavyAttack", {
+        MaxForce = Vector3.new(30000, 0, 30000),
+        P = 10,
+        D = 0,
+        Position = (characterControllerRoot.CFrame * CFrame.new(0, 0, -5)).Position
+    }, characterControllerRoot, (if currentAction.Length > 0 then currentAction.Length / 1.2 else 1.5) + 0.5)
+    hudController:ShowCooldown("HEAVY", module.Cooldowns.Heavy)
+    task.delay(module.Cooldowns.Heavy, function()
+        attackStateActive.HeavyPunch = false
+    end)
+end
+function module.M1()
+    local v27
+    local v28
+    local v29
+    local v30
+    local v31
+    local v32
+    local v33
+    local v34
+    local v35
+    local v36
+    local v37
+    local v38
+    local v39
+    local v40
+    local v41
+    local v42
+    local v43
+    local Character
+    local u45
+    local weapon
+    local v47
+
+    v27 = characterController.Animator
+    v28 = attackState.StyleSet()
+
+    if v28 and #v28.M1s ~= 0 then
+        attackStateActive.CanAttack = false
+
+        if #v28.M1s < attackStateActive.Combo then
+            attackStateActive.Combo = 1
+        end
+
+        attackState.StopCurrentM1()
+        v29 = dataController:Get("Current_Weapon")
+        v30 = v29 or ""
+        v31 = dataController:Get("EquippedSkin")
+        v32 = v31 or ""
+        v33 = weapons[v30]
+        v34 = if v30 == "" then nil else animations.Weapon(v27, v30)
+        v35 = v30 ~= "" and v33 and v33.Skins and table.find(v33.Skins, v32)
+        v36 = if v35 then animations.Skin(v27, v32) else nil
+        v37 = attackStateActive.Combo
+        v38 = v28.M1s[v37]
+
+        if v34 and #v34.M1s > 0 and not v36 then
+            if attackStateActive.Combo > #v34.M1s then
+                attackStateActive.Combo = 1
+            end
+
+            v39 = attackStateActive.Combo
+            v38 = v34.M1s[v39]
+            hitWindow.WireM1s(v34)
+        else
+            if v36 and #v36.M1s > 0 then
+                if attackStateActive.Combo > #v36.M1s then
+                    attackStateActive.Combo = 1
+                end
+
+                v40 = attackStateActive.Combo
+                v38 = v36.M1s[v40]
+                hitWindow.WireM1s(v36)
+            else
+                hitWindow.WireM1s(v28)
+            end
+        end
+
+        if not v38 then
+            attackStateActive.CanAttack = true
+        else
+            attackState.Revive(v38)
+            v38:Play()
+            v41 = classes
+            v42 = attackState.StyleName()
+            v43 = v41[v42]
+
+            if v33 then
+                Character = characterController.Character
+                u45 = false
+
+                if Character == nil then
+                else
+                    weapon = Character:FindFirstChild("Weapon")
+                    u45 = weapon ~= nil
+                end
+
+                if u45 then
+                    v38:AdjustSpeed(v33.Speed or 1)
+                else
+                    v38:AdjustSpeed(v43 and v43.Speed or 1)
+                end
+            else
+                v38:AdjustSpeed(v43 and v43.Speed or 1)
+            end
+
+            attackStateActive.CurrentM1 = v38
+            v47 = attackStateActive
+            v47.Combo = v47.Combo + 1
+        end
+    end
+end
+function module.HoldingWeapon()
+    local Character = characterController.Character
+
+    return Character ~= nil and Character:FindFirstChild("Weapon") ~= nil
+end
+function module.Shove()
+    if attackState.CanAct() and not attackStateActive.Shoving and not characterController:Is("Sprinting") then
+        local v49 = attackState.StyleSet()
+        local v50 = v49 and v49.Shove
+
+        if not v50 then
+            local Character = characterController.Character
+
+            if Character ~= nil and Character:FindFirstChild("Weapon") ~= nil then
+                return
+            end
+
+            v50 = animations.Push(characterController.Animator)
+        end
+
+        if not v50 then
+            return
+        end
+
+        attackStateActive.CanAttack = false
+        attackStateActive.Shoving = true
+        attackState.StopCurrentM1()
+        hitWindow.Wire(v50, "Shove")
+        attackStateActive.CurrentAction = v50
+        attackStateActive.CurrentKind = "Shove"
+        attackState.Revive(v50)
+        v50:Play()
+        task.delay(module.Cooldowns.Shove, function()
+            attackStateActive.Shoving = false
+        end)
+
+        return
+    end
+end
+function module.Slam()
+    if not places.IsPro() and not ranked.IsRatedMatch() and attackState.CanAct() and not attackStateActive.Slamming and not characterController:Is("Sprinting") then
+        local Character = characterController.Character
+
+        if Character ~= nil and Character:FindFirstChild("Weapon") ~= nil then
+            return
+        end
+
+        local animationsTakedownGrab = animations.TakedownGrab
+        local characterControllerAnimator = characterController.Animator
+        local v55 = dataController:Get("Takedown")
+        local currentAction = animationsTakedownGrab(characterControllerAnimator, v55 or "")
+
+        if not currentAction then
+            return
+        end
+
+        attackStateActive.CanAttack = false
+        attackStateActive.Slamming = true
+        attackState.StopCurrentM1()
+        hitWindow.Wire(currentAction, "Slam")
+        attackStateActive.CurrentAction = currentAction
+        attackStateActive.CurrentKind = "Slam"
+        attackState.Revive(currentAction)
+        currentAction:Play()
+        task.delay(module.Cooldowns.Slam, function()
+            attackStateActive.Slamming = false
+        end)
+
+        return
+    end
+end
+function module.Stomp()
+    if attackState.CanAct() and not attackStateActive.Stomping and not characterController:Is("Sprinting") then
+        local v57 = animations.DownHits(characterController.Animator)
+
+        if #v57 == 0 then
+            return
+        end
+
+        attackStateActive.CanAttack = false
+        attackStateActive.Stomping = true
+        attackState.StopCurrentM1()
+
+        local randomNumber = math.random(#v57)
+        local currentAction = v57[randomNumber]
+
+        hitWindow.Wire(currentAction, "Stomp", function()
+            local attackStateActiveCancels = attackStateActive.Cancels
+
+            task.wait(0.45)
+
+            if attackStateActive.Cancels == attackStateActiveCancels then
+                attackStateActive.CanAttack = true
+            end
+        end)
+        attackStateActive.CurrentAction = currentAction
+        attackStateActive.CurrentKind = "Stomp"
+        attackState.Revive(currentAction)
+        currentAction:Play()
+        task.delay(module.Cooldowns.Stomp, function()
+            attackStateActive.Stomping = false
+        end)
+
+        return
+    end
+end
+
+return module

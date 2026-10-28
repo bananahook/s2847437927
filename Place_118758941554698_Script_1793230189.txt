@@ -1,0 +1,288 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.CameraController
+-- Took 0.04s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local guiService: GuiService = game:GetService("GuiService")
+local players: Players = game:GetService("Players")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local runService: RunService = game:GetService("RunService")
+local userInputService: UserInputService = game:GetService("UserInputService")
+local controllers = replicatedStorage:WaitForChild("Client").Controllers
+local characterController = require(controllers.CharacterController)
+local settingsController = require(controllers.SettingsController)
+local LocalPlayer: Player = players.LocalPlayer
+local CurrentCamera: Camera = workspace.CurrentCamera
+
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+    CurrentCamera = workspace.CurrentCamera or CurrentCamera
+end)
+
+local t1: {[any]: any} = { Spraycan = true, NerfPG = true }
+local u12 = nil
+local connection = nil
+local u14: boolean = false
+
+local function dynamicCameraEnabled()
+    return settingsController:Get("Dynamic Camera")
+end
+local function aiming()
+    local player = characterController
+
+    if player:FistsUp() then
+        return true
+    end
+
+    local Character = player.Character
+
+    if Character then
+        for iterValue in t1 do
+            if Character:FindFirstChild(iterValue) then
+                return true
+            end
+        end
+
+        return false
+    end
+
+    return false
+end
+
+local t2: {[any]: any} = {
+    Grapple = function(p1)
+        local cFrame = p1.CFrame
+        local v26 = CFrame.Angles(0, -1.5707963267948966, 0)
+
+        return cFrame * CFrame.new(-5, 0, 0) * v26
+    end,
+    LookFrom = function(p2)
+        local cFrame = p2.CFrame
+        local v29 = CFrame.Angles(-0.8726646259971648, 0, -0.8726646259971648)
+
+        return cFrame * CFrame.new(0, -2, 0) * v29
+    end,
+    Ball = function(p3)
+        local cFrame = p3.CFrame
+        local v32 = CFrame.Angles(-0.3490658503988659, 0, -0.8726646259971648)
+
+        return cFrame * CFrame.new(0, -2, 0) * v32
+    end
+}
+
+local function step()
+    if CurrentCamera:GetAttribute("FOCUSING") then
+        return
+    end
+
+    local player = characterController
+    local Humanoid = player.Humanoid
+    local root = player.Root
+    local Character = player.Character
+
+    if Humanoid and root then
+        if u12 and player:IsAlive() then
+            CurrentCamera.CFrame = if typeof(u12) == "CFrame" then u12 else u12.CFrame
+
+            return
+        end
+
+        if not player:IsAlive() then
+            Humanoid.AutoRotate = false
+
+            return
+        end
+
+        local v37 = aiming()
+
+        if v37 and not player:Is("Knocked") and (not player:Is("Occupied") or not not player:Is("Holding") or not not player:Is("Throwing")) and Humanoid:GetState() ~= Enum.HumanoidStateType.FallingDown and Humanoid:GetState() ~= Enum.HumanoidStateType.GettingUp and not Character:FindFirstChild("Phone") then
+            Humanoid.AutoRotate = false
+
+            local v38, v39 = CurrentCamera.CFrame:ToEulerAnglesYXZ()
+            local cFrame = CFrame.new(root.Position)
+            local v41 = CFrame.Angles(0, v39, 0)
+
+            root.CFrame = cFrame * v41
+
+            if settingsController:Get("Dynamic Camera") then
+                local upperTorso = Character:FindFirstChild("UpperTorso")
+
+                CurrentCamera.CFrame = CurrentCamera.CFrame:Lerp((upperTorso or root).CFrame * CFrame.new(100, 8, 0), 0.01)
+            else
+                CurrentCamera.CFrame = CurrentCamera.CFrame * CFrame.new(1, 1, 0)
+
+                local upperTorso = Character:FindFirstChild("UpperTorso")
+
+                if upperTorso and upperTorso ~= CurrentCamera.CameraSubject then
+                    CurrentCamera.CameraSubject = upperTorso
+                end
+            end
+        end
+
+        if player:Get("Emoting") ~= nil then
+            CurrentCamera.CameraSubject = Character:FindFirstChild("LowerTorso") or Humanoid
+            CurrentCamera.CFrame = CurrentCamera.CFrame * CFrame.new(0, 2, 0)
+        end
+
+        if not v37 and not player:Is("Occupied") then
+            local currentCameraCameraSubject: Instance = CurrentCamera.CameraSubject
+            local upperTorso = Character:FindFirstChild("UpperTorso")
+
+            if currentCameraCameraSubject == upperTorso then
+                CurrentCamera.CameraSubject = Humanoid
+            end
+
+            if Humanoid.AutoRotate == false then
+                Humanoid.AutoRotate = true
+            end
+        end
+
+        return
+    end
+end
+
+local module: {[any]: any} = {
+    SetMouseLocked = function(_, p5)
+        if p5 and characterController:IsAlive() then
+            userInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+            userInputService.MouseIconEnabled = true
+            LocalPlayer:GetMouse().Icon = "rbxassetid://5992580992"
+            u14 = true
+
+            return
+        end
+
+        userInputService.MouseBehavior = Enum.MouseBehavior.Default
+        LocalPlayer:GetMouse().Icon = ""
+        u14 = false
+    end,
+    SetCutscene = function(_, cameraSubject, p8)
+        u12 = cameraSubject
+
+        if typeof(cameraSubject) == "Instance" then
+            CurrentCamera.CameraSubject = cameraSubject
+        end
+
+        if cameraSubject then
+            CurrentCamera.CameraType = Enum.CameraType.Scriptable
+            CurrentCamera.FieldOfView = p8 or 50
+
+            return
+        end
+
+        CurrentCamera.CameraType = Enum.CameraType.Custom
+        CurrentCamera.FieldOfView = 70
+
+        local Humanoid = characterController.Humanoid
+
+        if Humanoid then
+            CurrentCamera.CameraSubject = Humanoid
+        end
+    end,
+    Focus = function(p9, cameraSubject, p11)
+        if cameraSubject and cameraSubject.Name == "CutsceneCameraPart" then
+            if connection then
+                connection:Disconnect()
+                connection = nil
+            end
+
+            CurrentCamera:SetAttribute("FOCUSING", nil)
+            CurrentCamera.CameraSubject = cameraSubject
+
+            return
+        end
+
+        p9:UnFocus()
+
+        if not cameraSubject then
+            return
+        end
+
+        local v55 = t2[p11 or "LookFrom"] or t2.LookFrom
+
+        CurrentCamera:SetAttribute("FOCUSING", true)
+        connection = runService.RenderStepped:Connect(function()
+            if not cameraSubject.Parent then
+                p9:UnFocus()
+
+                return
+            end
+
+            CurrentCamera.CameraSubject = cameraSubject
+
+            local v63: Camera = CurrentCamera
+            local currentCameraCFrame: CFrame = CurrentCamera.CFrame
+            local v65 = v55(cameraSubject)
+
+            v63.CFrame = currentCameraCFrame:Lerp(v65, 0.01)
+        end)
+    end,
+    UnFocus = function(_)
+        if connection then
+            connection:Disconnect()
+            connection = nil
+        end
+
+        CurrentCamera:SetAttribute("FOCUSING", nil)
+
+        local Humanoid = characterController.Humanoid
+
+        if Humanoid then
+            CurrentCamera.CameraSubject = Humanoid
+        end
+    end
+}
+
+local function onCharacterAdded(p13, p14)
+    CurrentCamera.FieldOfView = 70
+    u12 = nil
+    CurrentCamera.CameraType = Enum.CameraType.Custom
+    module:UnFocus()
+
+    local v60 = aiming()
+
+    module:SetMouseLocked(v60)
+    p14:Connect(p13.ChildAdded, function(p15)
+        if t1[p15.Name] or p15.Name == "Fight" then
+            module:SetMouseLocked(true)
+        end
+    end)
+    p14:Connect(p13.ChildRemoved, function(p16)
+        if t1[p16.Name] or p16.Name == "Fight" then
+            local v68 = aiming()
+
+            module:SetMouseLocked(v68)
+        end
+    end)
+    p14:Connect(characterController.Died, function()
+        module:SetMouseLocked(false)
+    end)
+    p14:Connect(userInputService.WindowFocusReleased, function()
+        if u14 then
+            userInputService.MouseBehavior = Enum.MouseBehavior.Default
+        end
+    end)
+    p14:Connect(userInputService.WindowFocused, function()
+        local v69 = aiming()
+
+        module:SetMouseLocked(v69)
+    end)
+    v60 = userInputService:GetPropertyChangedSignal("MouseBehavior")
+    p14:Connect(v60, function()
+        if u14 and userInputService.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+            task.defer(function()
+                if u14 and aiming() and not guiService.MenuIsOpen and not userInputService:GetFocusedTextBox() then
+                    userInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+                end
+            end)
+        end
+    end)
+    p14:Connect(runService.RenderStepped, step)
+end
+function module.Init(_)
+    characterController.CharacterAdded:Connect(onCharacterAdded)
+end
+function module.Start(_)
+end
+
+return module

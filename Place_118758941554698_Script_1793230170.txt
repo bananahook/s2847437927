@@ -1,0 +1,265 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Combat.StruggleCamera
+-- Took 0.05s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local lighting: Lighting = game:GetService("Lighting")
+local players: Players = game:GetService("Players")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local runService: RunService = game:GetService("RunService")
+local tweenService: TweenService = game:GetService("TweenService")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local Camera = require(shared.Config.Combat).Struggle.Camera
+local u8: boolean = false
+local u9: boolean = false
+local u10 = false
+local n1 = 0
+local n2 = 0
+local n3 = 0
+local n4 = 0
+local random = Random.new()
+local u16 = nil
+local u17 = nil
+
+local function camera()
+    return workspace.CurrentCamera
+end
+local function cutsceneRunning()
+    return workspace.CurrentCamera.CameraType == Enum.CameraType.Scriptable
+end
+local function bar(parent, name, p3)
+    local frame: Frame = Instance.new("Frame")
+
+    frame.Name = name
+    frame.BackgroundColor3 = Color3.new()
+    frame.BorderSizePixel = 0
+    frame.AnchorPoint = Vector2.new(0, p3)
+    frame.Position = UDim2.fromScale(0, p3)
+    frame.Size = UDim2.fromScale(1, 0)
+    frame.Parent = parent
+
+    return frame
+end
+local function edge(parent, name, rotation)
+    local frame: Frame = Instance.new("Frame")
+
+    frame.Name = name
+    frame.BackgroundColor3 = Color3.new()
+    frame.BackgroundTransparency = 1
+    frame.BorderSizePixel = 0
+    frame.Size = UDim2.fromScale(1, 1)
+
+    local uiGradient: UIGradient = Instance.new("UIGradient")
+
+    uiGradient.Rotation = rotation
+    uiGradient.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0),
+        NumberSequenceKeypoint.new(0.45, 1),
+        NumberSequenceKeypoint.new(1, 1)
+    })
+    uiGradient.Parent = frame
+    frame.Parent = parent
+
+    return frame
+end
+local function dressUp()
+    if u16 then
+        return
+    end
+
+    local struggleCinematic: ScreenGui = Instance.new("ScreenGui")
+
+    struggleCinematic.Name = "StruggleCinematic"
+    struggleCinematic.IgnoreGuiInset = true
+    struggleCinematic.ResetOnSpawn = false
+    struggleCinematic.DisplayOrder = 40
+    struggleCinematic.Parent = players.LocalPlayer:WaitForChild("PlayerGui")
+    u16 = struggleCinematic
+
+    local tweenInfo = TweenInfo.new(Camera.FadeIn, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    local v39 = edge(struggleCinematic, "Left", 0)
+    local v40 = edge(struggleCinematic, "Right", 180)
+    local v41 = edge(struggleCinematic, "Top", 90)
+    local v42 = edge(struggleCinematic, "Bottom", 270)
+
+    for iterFirst, value in { v39, v40, v41, v42 }, nil, nil do
+        tweenService:Create(value, tweenInfo, { BackgroundTransparency = 1 - Camera.Vignette }):Play()
+    end
+
+    v39 = bar(struggleCinematic, "TopBar", 0)
+    v40 = bar(struggleCinematic, "BottomBar", 1)
+
+    for iterFirst2, value2 in { v39, v40 }, nil, nil do
+        local v47 = UDim2.fromScale(1, Camera.Letterbox)
+
+        tweenService:Create(value2, tweenInfo, { Size = v47 }):Play()
+    end
+
+    local struggleGrade: ColorCorrectionEffect = Instance.new("ColorCorrectionEffect")
+
+    struggleGrade.Name = "StruggleGrade"
+    struggleGrade.Parent = lighting
+    u17 = struggleGrade
+    tweenService:Create(struggleGrade, tweenInfo, {
+        Saturation = Camera.Saturation,
+        Contrast = Camera.Contrast,
+        TintColor = Camera.Tint
+    }):Play()
+end
+local function dressDown()
+    local v49 = u16
+    local v50 = u17
+
+    u16 = nil
+    u17 = nil
+
+    local tweenInfo = TweenInfo.new(Camera.FadeOut, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+
+    if v49 then
+        for iterFirst, iterSecond in v49:GetChildren() do
+            local v54 = iterSecond.Name:find("Bar")
+
+            tweenService:Create(iterSecond, tweenInfo, if v54 then { Size = UDim2.fromScale(1, 0) } else { BackgroundTransparency = 1 }):Play()
+        end
+
+        task.delay(Camera.FadeOut, v49.Destroy, v49)
+    end
+
+    if v50 then
+        tweenService:Create(v50, tweenInfo, { Saturation = 0, Contrast = 0, TintColor = Color3.new(1, 1, 1) }):Play()
+        task.delay(Camera.FadeOut, v50.Destroy, v50)
+    end
+end
+local function unbind()
+    if u8 then
+        runService:UnbindFromRenderStep("StruggleCamera")
+        u8 = false
+    end
+end
+local function step(p7)
+    local CurrentCamera: Camera = workspace.CurrentCamera
+
+    if workspace.CurrentCamera.CameraType == Enum.CameraType.Scriptable then
+        if u9 then
+            dressDown()
+        end
+
+        if u8 then
+            runService:UnbindFromRenderStep("StruggleCamera")
+            u8 = false
+        end
+
+        return
+    end
+
+    n4 += p7
+
+    local v57: number = n2
+    local v58 = math.exp(-p7 * Camera.KickDecay)
+
+    n2 = v57 * v58
+    v57 = n3
+    v58 = math.exp(-p7 * Camera.KickDecay)
+    n3 = v57 * v58
+
+    local n5
+    local v60
+
+    if u9 then
+        n5 = Camera.BaseFov - Camera.MaxDrop * n1 ^ Camera.Curve - n2
+        v60 = Camera.Smoothing
+    else
+        n5 = Camera.BaseFov
+        v60 = Camera.ReturnSmoothing
+    end
+
+    local currentCameraFieldOfView: number = CurrentCamera.FieldOfView
+    local n6 = n5 - CurrentCamera.FieldOfView
+    local v63 = math.exp(-p7 * v60)
+    local fieldOfView = currentCameraFieldOfView + n6 * (1 - v63)
+
+    if not u9 and math.abs(fieldOfView - Camera.BaseFov) < 0.05 then
+        CurrentCamera.FieldOfView = Camera.BaseFov
+
+        if u8 then
+            runService:UnbindFromRenderStep("StruggleCamera")
+            u8 = false
+        end
+
+        return
+    end
+
+    CurrentCamera.FieldOfView = fieldOfView
+
+    if u9 then
+        local v65 = math.rad(Camera.Sway)
+        local sine = math.sin(n4 * Camera.SwaySpeed * 3.141592653589793 * 2)
+        local sine2 = math.sin(n4 * Camera.SwaySpeed * 3.141592653589793 * 4)
+        local v68 = math.rad(n3)
+        local currentCameraCFrame: CFrame = CurrentCamera.CFrame
+        local cFrameAngles = CFrame.Angles
+        local v71 = random:NextNumber(-v68, v68)
+        local v72 = random:NextNumber(-v68, v68)
+        local v73 = random:NextNumber(-v68, v68)
+        local cFrame = cFrameAngles(sine2 * v65 * 0.5 + v71, sine * v65 + v72, v73 * 0.5)
+
+        CurrentCamera.CFrame = currentCameraCFrame * cFrame
+    end
+end
+local function bind()
+    if not u8 then
+        runService:BindToRenderStep("StruggleCamera", Enum.RenderPriority.Last.Value, step)
+        u8 = true
+    end
+end
+
+local module: {[any]: any} = {}
+
+function module.Start(p8, p9)
+    u10 = p8
+    u9 = true
+    n2 = 0
+    n3 = 0
+    n4 = 0
+    n1 = 0
+    module.Update(p9)
+    dressUp()
+
+    if not u8 then
+        runService:BindToRenderStep("StruggleCamera", Enum.RenderPriority.Last.Value, step)
+        u8 = true
+    end
+end
+function module.Update(p10)
+    if not u9 then
+        return
+    end
+
+    local v78 = math.clamp(if u10 then p10 / 100 else 1 - p10 / 100, 0, 1)
+
+    if v78 > n1 then
+        n2 += Camera.TapKick
+        n3 += Camera.Shake * (v78 + 0.4)
+    end
+
+    n1 = v78
+end
+function module.Stop()
+    if not u9 then
+        return
+    end
+
+    u9 = false
+    n1 = 0
+    n2 = 0
+    n3 = 0
+    dressDown()
+
+    if workspace.CurrentCamera.CameraType ~= Enum.CameraType.Scriptable and not u8 then
+        runService:BindToRenderStep("StruggleCamera", Enum.RenderPriority.Last.Value, step)
+        u8 = true
+    end
+end
+
+return module

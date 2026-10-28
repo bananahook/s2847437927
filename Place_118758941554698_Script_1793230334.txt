@@ -1,0 +1,126 @@
+-- Script Path: game:GetService("ReplicatedStorage").Shared.Config.Combat
+-- Took 0.05s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+return {
+    Reach = {
+        Bare = 7,
+        Weapon = 15,
+        LagAllowance = 1,
+        MaxLagAllowance = 4,
+        RequireLineOfSight = false,
+        MotionLead = 0.12,
+        MaxMotionAllowance = 6
+    },
+    Swing = { MaxPerSecond = 5, MaxHitDelay = 1.5, Remembered = 6 },
+    Cooldowns = {
+        Heavy = 5,
+        Stomp = 1,
+        Shove = 5,
+        Slam = 13,
+        WeaveMarker = 0.3,
+        WeaveRearm = 0.06,
+        WeaveStun = 0.35,
+        Emote = 0.5
+    },
+    Chances = {
+        Crit = 8,
+        CritWithPass = 6,
+        KO = 1000,
+        KOWithPass = 300,
+        RollsOnPro = false,
+        MadBlocker = 100,
+        MadBlockerOnTestPlace = 2
+    },
+    Damage = {
+        KOBonus = 1,
+        SlamImpact = 20,
+        SlamKO = 100,
+        FinisherThreshold = 15,
+        ATrain = 999,
+        ShoveNoDamage = true,
+        SlamFracture = { 3, 5 },
+        WallImpact = {
+            Metal = 13,
+            CorrodedMetal = 13,
+            Wood = 8,
+            WoodPlanks = 8,
+            Default = 7.5
+        }
+    },
+    Knockback = {
+        ShoveDistance = 8,
+        HeavyDuration = 0.4,
+        KnockdownSpeed = 15,
+        KnockdownKnockedSeconds = 2,
+        HitKnockedSeconds = 1,
+        SlamLandingSeconds = 2.5,
+        ShoveMoverSeconds = 0.4,
+        CompoundVFling = 80,
+        CompoundVFlingVsCompoundV = 20,
+        CompoundVKnockedSeconds = 5,
+        ShoveByStyle = { ["Compound V"] = 100, OMNI = 30, Luffy = 50 }
+    },
+    Struggle = {
+        StartStrength = 50,
+        ClickGain = 7,
+        MacroWindow = 0.03,
+        MacroPenalty = 10,
+        MaxClicksPerSecond = 14,
+        CpsPenalty = 50,
+        Timeout = 20,
+        Camera = {
+            BaseFov = 70,
+            MaxDrop = 32,
+            Curve = 1.6,
+            Smoothing = 5,
+            TapKick = 2.5,
+            KickDecay = 9,
+            ReturnSmoothing = 7,
+            Sway = 1.2,
+            SwaySpeed = 0.6,
+            Shake = 0.9,
+            Letterbox = 0.085,
+            Vignette = 0.55,
+            FadeIn = 0.35,
+            FadeOut = 0.45,
+            Saturation = -0.45,
+            Contrast = 0.2,
+            Tint = Color3.fromRGB(255, 236, 222)
+        }
+    },
+    Rewards = {
+        FriendBonus = 0.15,
+        Heal = 25,
+        HealWithPass = 50,
+        NoRewardsInOwnedPrivateServers = true,
+        XP = { 100, 150 },
+        XPWithPass = { 250, 450 },
+        Bounty = { 15, 50 }
+    },
+    CombatModeSeconds = 10,
+    Effects = {
+        SoundRadius = 250,
+        BloodRadius = 180,
+        FootstepRadius = 80,
+        BloodDripBurst = 4,
+        BloodDripInterval = 0.04,
+        BigBloodBurst = 4,
+        BigBloodInterval = 0.05
+    },
+    BodyParts = {
+        RightHand = true,
+        LeftHand = true,
+        LeftFoot = true,
+        RightFoot = true,
+        LeftLowerArm = true,
+        RightLowerArm = true,
+        LeftUpperArm = true,
+        RightUpperArm = true,
+        Head = true,
+        UpperTorso = true,
+        LowerTorso = true
+    }
+}

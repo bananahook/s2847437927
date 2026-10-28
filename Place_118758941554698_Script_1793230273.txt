@@ -1,0 +1,221 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.ThrowableController
+-- Took 0.06s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local players: Players = game:GetService("Players")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local runService: RunService = game:GetService("RunService")
+local tweenService: TweenService = game:GetService("TweenService")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local throwables = require(shared.Config.Throwables)
+local remotes = require(shared.Net.Remotes)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local localFlight = require(client.Throwables.LocalFlight)
+local characterController = require(client.Controllers.CharacterController)
+local combatController = require(client.Controllers.CombatController)
+local tweenInfo = TweenInfo.new(0.5)
+local LocalPlayer: Player = players.LocalPlayer
+local u14 = nil
+local t1: {[any]: any} = {}
+local u16 = nil
+local u17 = nil
+
+local function free(p1)
+    local v26 = p1:IsA("Model")
+
+    if v26 then
+        v26 = false
+
+        if p1.PrimaryPart ~= nil then
+            v26 = p1:GetAttribute("Taken") ~= true
+        end
+    end
+
+    return v26
+end
+local function nearestProp(p2)
+    local characterControllerRoot = characterController.Root
+
+    if not characterControllerRoot then
+        return nil
+    end
+
+    local v29 = nil
+    local v30 = p2
+
+    for key, value in t1 do
+        local v33 = value:IsA("Model")
+
+        if v33 then
+            v33 = false
+
+            if value.PrimaryPart ~= nil then
+                v33 = value:GetAttribute("Taken") ~= true
+            end
+        end
+
+        if v33 then
+            local magnitude = (value.PrimaryPart.Position - characterControllerRoot.Position).Magnitude
+
+            if v30 >= magnitude then
+                v29 = value
+                v30 = magnitude
+            end
+        end
+    end
+
+    return v29
+end
+local function heldProp()
+    for key, value in t1 do
+        if value:GetAttribute("Owner") == LocalPlayer.Name then
+            return value
+        end
+    end
+
+    return nil
+end
+local function hoopInReach()
+    local characterControllerRoot = characterController.Root
+    local map: Instance = workspace:FindFirstChild("Map")
+    local hoop: Instance = map and map:FindFirstChild("Hoop")
+
+    if characterControllerRoot and hoop then
+        for iterFirst, iterSecond in hoop:GetChildren() do
+            if iterSecond:IsA("BasePart") and (characterControllerRoot.Position - iterSecond.Position).Magnitude <= throwables.Dunk.HoopDistance then
+                return true
+            end
+        end
+
+        return false
+    end
+
+    return false
+end
+local function setHighlight(parent)
+    if parent == u16 then
+        return
+    end
+
+    local v43 = u17
+
+    if v43 then
+        tweenService:Create(v43, tweenInfo, { OutlineTransparency = 1 }):Play()
+        task.delay(tweenInfo.Time, v43.Destroy, v43)
+    end
+
+    u16 = parent
+    u17 = nil
+
+    if parent then
+        local highlight: Highlight = Instance.new("Highlight")
+
+        highlight.FillTransparency = 1
+        highlight.OutlineTransparency = 1
+        highlight.OutlineColor = throwables.HighlightColor
+        highlight.Parent = parent
+        u17 = highlight
+        tweenService:Create(highlight, tweenInfo, { OutlineTransparency = 0 }):Play()
+    end
+end
+local function tryThrow()
+    local v45 = characterController
+
+    if not localFlight.IsThrowing() and not v45:Is("Throwing") then
+        if not v45:Is("Holding") then
+            return false
+        end
+
+        local v46: boolean = false
+        local v47
+
+        for key, value in t1 do
+            if value:GetAttribute("Owner") == LocalPlayer.Name then
+                v47 = value
+                v46 = true
+
+                break
+            end
+        end
+
+        if not v46 then
+            v47 = nil
+        end
+
+        if not v47 then
+            return true
+        end
+
+        local ParentName = v47.Parent.Name
+
+        if ParentName == "Basketballs" and v45:Is("Sprinting") and hoopInReach() then
+            u14.Dunk:Fire()
+
+            return true
+        end
+
+        localFlight.Begin(v47, ParentName)
+
+        return true
+    end
+
+    return true
+end
+local function tryPickup()
+    local player = characterController
+
+    if not player:Is("Occupied") and not player:Is("Holding") and not player.Character:FindFirstChild("Weapon") then
+        local v52 = nearestProp(throwables.PickupDistance)
+
+        if v52 then
+            u14.Pickup:Fire(v52)
+
+            return true
+        end
+
+        return false
+    end
+
+    return false
+end
+
+return {
+    Init = function(_)
+        u14 = remotes.Client("ThrowableService")
+        localFlight.Setup(u14)
+        combatController:AddAttackIntercept("Start", tryThrow)
+        combatController:AddAttackIntercept("M1", tryPickup)
+    end,
+    Start = function(_)
+        task.spawn(function()
+            local map: Instance = workspace:WaitForChild("Map", 60)
+            local interaction: Instance = map and map:WaitForChild("Interaction", 30)
+
+            for iterFirst, iterSecond in interaction and interaction:GetChildren() or {}, nil, nil do
+                for iterFirst2, iterSecond2 in iterSecond:GetChildren() do
+                    if iterSecond2:IsA("Model") then
+                        table.insert(t1, iterSecond2)
+                    end
+                end
+            end
+        end)
+
+        local n1: number = 0
+
+        runService.Heartbeat:Connect(function(deltaTime: number)
+            n1 += deltaTime
+
+            if n1 < 0.1 then
+                return
+            end
+
+            n1 = 0
+
+            local v63 = if characterController:IsAlive() and not characterController:Is("Holding") then nearestProp(throwables.HighlightDistance) else nil
+
+            setHighlight(v63)
+        end)
+    end
+}

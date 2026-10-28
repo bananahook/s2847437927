@@ -1,0 +1,309 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.RankedPartyController
+-- Took 0.06s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local players: Players = game:GetService("Players")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local ranked = require(shared.Config.Ranked)
+local remotes = require(shared.Net.Remotes)
+local signal = require(replicatedStorage.Packages.Signal)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local invites = require(client.UI.Invites)
+local clientControllers = client.Controllers
+local hudController = require(clientControllers.HUDController)
+local settingsController = require(clientControllers.SettingsController)
+local uiController = require(clientControllers.UIController)
+local v13 = signal.new()
+local v14 = signal.new()
+local rankedParty = ranked.Party
+local rankedPartyNotify = rankedParty.Notify
+local color3 = Color3.fromRGB(122, 255, 98)
+local color32 = Color3.fromRGB(255, 56, 56)
+local LocalPlayer: Player = players.LocalPlayer
+local u20 = nil
+local u21 = nil
+
+local function popupName(p1)
+    return (("RankedInvite_%*"):format(p1))
+end
+local function toast(p2, p3)
+    hudController:Notify(p2, p3, 3)
+end
+
+local module: {[any]: any} = {
+    Changed = v13,
+    InviteResult = v14,
+    Explain = function(_, p5, p6)
+        local v36 = p5 and rankedPartyNotify[p5]
+
+        if v36 then
+            local v37 = if string.find(v36, "%s", 1, true) then string.format(v36, p6 or "?") else v36
+
+            hudController:Notify(v37, color32, 3)
+        elseif p5 == "unreachable" then
+            hudController:Notify(rankedPartyNotify.Unreachable, color32, 3)
+        end
+    end,
+    Get = function(_)
+        return u21
+    end,
+    InParty = function(_)
+        return u21 ~= nil
+    end,
+    Me = function(_)
+        for iterFirst, iterSecond in u21 and u21.Members or {}, nil, nil do
+            if iterSecond.UserId == LocalPlayer.UserId then
+                return iterSecond
+            end
+        end
+
+        return nil
+    end,
+    Partner = function(_)
+        for iterFirst, iterSecond in u21 and u21.Members or {}, nil, nil do
+            if iterSecond.UserId ~= LocalPlayer.UserId then
+                return iterSecond
+            end
+        end
+
+        return nil
+    end,
+    RegionLabel = function(_)
+        local v47 = nil
+
+        for iterFirst, iterSecond in u21 and u21.Members or {}, nil, nil do
+            if iterSecond.UserId == u21.Leader then
+                v47 = iterSecond.Region
+            end
+        end
+
+        if u21 and u21.Search then
+            v47 = u21.Search.Region
+        end
+
+        local v50 = v47 and ranked.Regions[v47]
+
+        if v50 then
+            return v50.Label
+        end
+
+        return "US/NA"
+    end,
+    Search = function(_, p13)
+        local v53, v54, v55 = pcall(u20.Search, u20, p13)
+
+        if v53 and typeof(v54) == "table" then
+            return v54
+        end
+
+        if v53 and v55 == "slow" then
+            return nil, "slow"
+        end
+
+        return nil, "unreachable"
+    end,
+    Invite = function(_, p15)
+        local v58, v59, v60, v61 = pcall(u20.Invite, u20, p15)
+
+        if not v58 then
+            return false, "unreachable"
+        end
+
+        return v59 == true, v60, v61
+    end,
+    CancelInvite = function(_)
+        u20.CancelInvite:Fire()
+    end
+}
+
+function module.Leave(_)
+    task.spawn(function()
+        local v107, v108, v109 = pcall(u20.Leave, u20)
+
+        if not v107 or v108 == false then
+            module:Explain(if v107 then v109 else "unreachable")
+        end
+    end)
+end
+function module.GetMember(_, p19)
+    local ok, result = pcall(u20.GetMember, u20, p19)
+
+    if ok then
+        return result
+    end
+
+    return nil
+end
+local function onState(p20, p21, p22)
+    local v71 = u21
+
+    u21 = p20
+
+    if p20 and p22 then
+        local v72 = module:Partner()
+        local formattedText = string.format(rankedPartyNotify.Partnered, v72 and v72.Name or "?")
+
+        hudController:Notify(formattedText, color3, 3)
+
+        if not uiController:IsLocked() and not uiController:IsOpen("Ranked") then
+            uiController:Open("Ranked")
+        end
+    elseif not p20 and v71 and typeof(p21) == "table" then
+        local v74 = p21.By
+
+        if v74 then
+            v74 = false
+
+            if p21.By.UserId ~= LocalPlayer.UserId then
+                v74 = p21.By.Name
+            end
+        end
+
+        if p21.Reason == "disbanded" and v74 then
+            local formattedText = string.format(rankedPartyNotify.Disbanded, v74)
+
+            hudController:Notify(formattedText, color32, 3)
+        elseif p21.Reason == "left" and v74 then
+            local formattedText = string.format(rankedPartyNotify.Left, v74)
+
+            hudController:Notify(formattedText, color32, 3)
+        elseif p21.Reason == "closed" then
+            hudController:Notify(rankedPartyNotify.Closed, color32, 3)
+        end
+    end
+
+    module.Changed:Fire(u21)
+end
+local function answer(p23, p24, p25)
+    task.spawn(function()
+        local v110, v111, v112 = pcall(u20.Respond, u20, p23, p24)
+
+        if v110 and v111 then
+            return
+        end
+
+        if v110 and v112 ~= "gone" and v112 ~= nil then
+            module:Explain(v112, p25)
+
+            return
+        end
+
+        hudController:Notify(rankedPartyNotify.Gone, color32, 3)
+    end)
+end
+local function onInvited(p26)
+    if typeof(p26) == "table" and typeof(p26.Id) == "string" and typeof(p26.From) == "table" then
+        local FromName = p26.From.Name
+        local invitesShow = invites.Show
+        local name = ("RankedInvite_%*"):format(p26.Id)
+        local rankedPartyNotifyInviteHeader = rankedPartyNotify.InviteHeader
+        local formattedText = string.format(rankedPartyNotify.InviteMessage, FromName)
+
+        invitesShow({
+            Name = name,
+            Header = rankedPartyNotifyInviteHeader,
+            Message = formattedText,
+            Seconds = p26.Seconds or rankedParty.InviteSeconds,
+            OnAccept = function()
+                local v113 = p26.Id
+                local v114 = FromName
+                local u115: boolean = true
+
+                task.spawn(function()
+                    local v122, v123, v124 = pcall(u20.Respond, u20, v113, u115)
+
+                    if v122 and v123 then
+                        return
+                    end
+
+                    if v122 and v124 ~= "gone" and v124 ~= nil then
+                        module:Explain(v124, v114)
+
+                        return
+                    end
+
+                    hudController:Notify(rankedPartyNotify.Gone, color32, 3)
+                end)
+            end,
+            OnDecline = function()
+                local v116 = p26.Id
+                local v117 = FromName
+                local u118: boolean = false
+
+                task.spawn(function()
+                    local v125, v126, v127 = pcall(u20.Respond, u20, v116, u118)
+
+                    if v125 and v126 then
+                        return
+                    end
+
+                    if v125 and v127 ~= "gone" and v127 ~= nil then
+                        module:Explain(v127, v117)
+
+                        return
+                    end
+
+                    hudController:Notify(rankedPartyNotify.Gone, color32, 3)
+                end)
+            end
+        })
+
+        return
+    end
+end
+local function onInviteGone(p27, p28, p29)
+    local invitesRemove = invites.Remove
+    local v90 = ("RankedInvite_%*"):format((tostring(p27)))
+
+    invitesRemove(v90)
+
+    local v91 = typeof(p29) == "table" and p29.Name or "?"
+
+    if p28 == "cancelled" then
+        local v92, v93 = string.format(rankedPartyNotify.Cancelled, v91)
+
+        hudController:Notify(v92, v93, 3)
+    elseif p28 == "unavailable" then
+        local v94, v95 = string.format(rankedPartyNotify.Unavailable, v91)
+
+        hudController:Notify(v94, v95, 3)
+    end
+end
+local function onInviteResult(p30, p31, p32, p33)
+    if p31 == "unavailable" then
+        local stringFormat = string.format
+        local rankedPartyNotifyUnavailable = rankedPartyNotify.Unavailable
+        local typeName: string = typeof(p33)
+        local v103, v104 = stringFormat(rankedPartyNotifyUnavailable, typeName == "table" and p33.Name or "?")
+
+        hudController:Notify(v103, v104, 3)
+    end
+
+    module.InviteResult:Fire(p30, p31, p32, p33)
+end
+function module.Init(_)
+    u20 = remotes.Client("RankedParty")
+    u20.State:Connect(onState)
+    u20.Invited:Connect(onInvited)
+    u20.InviteGone:Connect(onInviteGone)
+    u20.InviteResult:Connect(onInviteResult)
+    settingsController:Observe("Ranked Invites", function(p35)
+        if not p35 then
+            invites.Clear("RankedInvite_")
+        end
+    end)
+end
+function module.Start(_)
+    task.spawn(function()
+        local ok, result = pcall(u20.GetState, u20)
+
+        if ok and result and not u21 then
+            onState(result, nil, false)
+        end
+    end)
+end
+
+return module

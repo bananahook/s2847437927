@@ -1,0 +1,243 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Combat.Animations
+-- Took 0.42s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local shared: Instance = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local assets = require(shared.Config.Assets)
+local animationCache = require(shared.Util.AnimationCache)
+local assetsCombatAnimations = assets.CombatAnimations
+local object = setmetatable({}, { __mode = "k" })
+
+local function cached(p1, p2, p3)
+    local t1 = object[p1]
+
+    if not t1 then
+        t1 = {}
+        object[p1] = t1
+    end
+
+    local v14 = t1[p2]
+
+    if v14 == nil then
+        v14 = p3()
+        t1[p2] = if v14 == nil then false else v14
+    end
+
+    return v14 or nil
+end
+local function load(p4, p5)
+    return animationCache.TryLoad(p4, p5)
+end
+local function loadNumbered(p6, p7)
+    local t2: {[any]: any} = {}
+
+    if not p7 then
+        return t2
+    end
+
+    for i = 1, #p7:GetChildren() do
+        local text: string = tostring(i)
+        local text2 = p7:FindFirstChild(text)
+        local v23 = animationCache.TryLoad(p6, text2)
+
+        if not v23 then
+            break
+        end
+
+        t2[i] = v23
+    end
+
+    return t2
+end
+local function loadNamed(p8, p9)
+    local t3: {[any]: any} = {}
+
+    if p9 then
+        for iterFirst, iterSecond in p9:GetChildren() do
+            local v29 = animationCache.TryLoad(p8, iterSecond)
+
+            if v29 then
+                t3[iterSecond.Name] = v29
+            end
+        end
+    end
+
+    return t3
+end
+
+return {
+    Style = function(p10, p11)
+        local s1: string = "Style:" .. p11
+
+        local function v33()
+            local foundChild = assetsCombatAnimations.Styles:FindFirstChild(p11)
+
+            if not foundChild then
+                return nil
+            end
+
+            local shove = foundChild:FindFirstChild("Shove")
+            local movement = foundChild:FindFirstChild("Movement")
+            local v68 = loadNumbered(p10, foundChild:FindFirstChild("M1s"))
+            local v69 = loadNamed(p10, foundChild:FindFirstChild("Weave"))
+            local t7: {[any]: any} = { M1s = v68, Weave = v69 }
+
+            v69 = shove
+
+            if v69 then
+                local push = shove:FindFirstChild("Push")
+
+                v69 = animationCache.TryLoad(p10, push)
+            end
+
+            t7.Shove = v69
+
+            local idle = foundChild:FindFirstChild("Idle")
+
+            t7.Idle = animationCache.TryLoad(p10, idle)
+
+            local t8
+
+            if movement then
+                local front = movement:FindFirstChild("Front")
+                local v75 = animationCache.TryLoad(p10, front)
+                local back = movement:FindFirstChild("Back")
+                local v77 = animationCache.TryLoad(p10, back)
+                t8 = { Front = v75, Back = v77 }
+            else
+                t8 = nil
+            end
+
+            t7.Movement = t8
+
+            return t7
+        end
+
+        local t4 = object[p10]
+
+        if not t4 then
+            t4 = {}
+            object[p10] = t4
+        end
+
+        local v35 = t4[s1]
+
+        if v35 == nil then
+            v35 = v33()
+            t4[s1] = if v35 == nil then false else v35
+        end
+
+        return v35 or nil
+    end,
+    Weapon = function(p12, p13)
+        local s1: string = "Weapon:" .. p13
+
+        local function v39()
+            local foundChild = assetsCombatAnimations.Weapons:FindFirstChild(p13)
+
+            if not foundChild then
+                return nil
+            end
+
+            local m1s = foundChild:FindFirstChild("M1s")
+            local t9: {[any]: any} = {}
+
+            if m1s then
+                for iterFirst, iterSecond in m1s:GetChildren() do
+                    local numberValue: number? = tonumber(iterSecond.Name)
+
+                    t9[numberValue or 0] = iterSecond:FindFirstChild("KNOCKDOWN_HIT") ~= nil
+                end
+            end
+
+            local v84 = loadNumbered(p12, m1s)
+            local idle = foundChild:FindFirstChild("Idle")
+            local v86 = animationCache.TryLoad(p12, idle)
+
+            return { M1s = v84, Knockdown = t9, Idle = v86 }
+        end
+
+        local t5 = object[p12]
+
+        if not t5 then
+            t5 = {}
+            object[p12] = t5
+        end
+
+        local v41 = t5[s1]
+
+        if v41 == nil then
+            v41 = v39()
+            t5[s1] = if v41 == nil then false else v41
+        end
+
+        return v41 or nil
+    end,
+    Skin = function(p14, p15)
+        local s1: string = "Skin:" .. p15
+
+        local function v45()
+            local foundChild = assetsCombatAnimations.Skin_Anims:FindFirstChild(p15)
+
+            if not foundChild then
+                return nil
+            end
+
+            local v88 = loadNumbered(p14, foundChild:FindFirstChild("M1s"))
+            local idle = foundChild:FindFirstChild("Idle")
+            local v90 = animationCache.TryLoad(p14, idle)
+
+            return { M1s = v88, Idle = v90 }
+        end
+
+        local t6 = object[p14]
+
+        if not t6 then
+            t6 = {}
+            object[p14] = t6
+        end
+
+        local v47 = t6[s1]
+
+        if v47 == nil then
+            v47 = v45()
+            t6[s1] = if v47 == nil then false else v47
+        end
+
+        return v47 or nil
+    end,
+    Heavy = function(p16, p17)
+        return load(p16, assetsCombatAnimations.Heavys:FindFirstChild(p17))
+    end,
+    DownHits = function(p18)
+        return (loadNumbered(p18, assetsCombatAnimations.Down_Hits))
+    end,
+    TakedownGrab = function(p19, p20)
+        local foundChild = assetsCombatAnimations.SLAM:FindFirstChild(p20)
+        local v54 = foundChild
+
+        if v54 then
+            local grab = foundChild:FindFirstChild("Grab")
+
+            v54 = animationCache.TryLoad(p19, grab)
+        end
+
+        return v54
+    end,
+    Push = function(p21)
+        return load(p21, assetsCombatAnimations:FindFirstChild("Push"))
+    end,
+    Movement = function(p22)
+        local assetsCombatAnimationsMovement = assetsCombatAnimations.Movement
+        local front = assetsCombatAnimationsMovement:FindFirstChild("Front")
+        local v60 = animationCache.TryLoad(p22, front)
+        local back = assetsCombatAnimationsMovement:FindFirstChild("Back")
+        local v62 = animationCache.TryLoad(p22, back)
+        local idle = assetsCombatAnimationsMovement:FindFirstChild("Idle")
+        local v64 = animationCache.TryLoad(p22, idle)
+
+        return { Front = v60, Back = v62, Idle = v64 }
+    end
+}

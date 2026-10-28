@@ -1,0 +1,343 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.LocomotionController
+-- Took 0.05s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local runService: RunService = game:GetService("RunService")
+local starterGui: StarterGui = game:GetService("StarterGui")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local classes = require(shared.Config.Classes)
+local log = require(shared.Util.Log)
+local weapons = require(shared.Config.Weapons)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local animations = require(client.Combat.Animations)
+local clientControllers = client.Controllers
+local characterController = require(clientControllers.CharacterController)
+local combatController = require(clientControllers.CombatController)
+local dataController = require(clientControllers.DataController)
+local u14 = nil
+local u15 = nil
+local u16 = true
+local u17 = true
+
+local function animator()
+    return characterController.Animator
+end
+local function styleName()
+    return characterController:Get("Style") or dataController:Get("Class") or "Amateur"
+end
+local function loadMovement(p1)
+    local v30 = animations.Movement(characterController.Animator)
+
+    if p1 then
+        local animationsStyle = animations.Style
+        local characterControllerAnimator = characterController.Animator
+        local v33 = characterController:Get("Style") or dataController:Get("Class") or "Amateur"
+        local v34 = animationsStyle(characterControllerAnimator, v33)
+
+        if v34 and v34.Movement and v34.Movement.Front and v34.Movement.Back then
+            local back = v34.Movement.Back
+
+            v30.Front = v34.Movement.Front
+            v30.Back = back
+        end
+    end
+
+    if u14 then
+        for iterFirst, iterSecond in u14 do
+            if iterSecond and iterSecond.IsPlaying then
+                iterSecond:Stop()
+            end
+        end
+    end
+
+    if not v30.Front or not v30.Back or not v30.Idle then
+        log.warn("LocomotionController", "Movement animations are missing; locomotion animations are off for this life")
+        u14 = nil
+
+        return
+    end
+
+    u14 = v30
+end
+local function loadStance()
+    local animationsStyle = animations.Style
+    local characterControllerAnimator = characterController.Animator
+    local v40 = characterController:Get("Style") or dataController:Get("Class") or "Amateur"
+    local v41 = animationsStyle(characterControllerAnimator, v40)
+    local idle = v41 and v41.Idle
+
+    if u15 and idle ~= u15 and u15.IsPlaying then
+        u15:Stop()
+    end
+
+    u15 = idle
+end
+local function currentWeaponIdle()
+    local v43 = dataController:Get("Current_Weapon") or ""
+    local v44 = dataController:Get("EquippedSkin") or ""
+
+    if v43 == "" then
+        return nil
+    end
+
+    local v45 = weapons[v43]
+    local v46 = v45 and v45.Skins and table.find(v45.Skins, v44) and animations.Skin(characterController.Animator, v44)
+
+    if v46 and v46.Idle then
+        return v46.Idle
+    end
+
+    v45 = animations.Weapon(characterController.Animator, v43)
+
+    return v45 and v45.Idle
+end
+local function wantedStance(p2)
+    if u15 and not p2 then
+        local v48 = characterController:Get("Style") or dataController:Get("Class") or "Amateur"
+        local v49 = classes[v48]
+
+        if v49 and v49.Weapon then
+            return u15
+        end
+
+        if characterController:FistsUp() then
+            return u15
+        end
+
+        return nil
+    end
+
+    return nil
+end
+local function isFullBody(p3)
+    return p3.Priority == Enum.AnimationPriority.Idle
+end
+local function stopIdles()
+    if u14 and u14.Idle.IsPlaying then
+        u14.Idle:Stop()
+    end
+end
+local function setCoreGui(p4, p5)
+    if p4 ~= u16 then
+        u16 = p4
+        pcall(starterGui.SetCoreGuiEnabled, starterGui, Enum.CoreGuiType.Backpack, p4)
+    end
+
+    if p5 ~= u17 then
+        u17 = p5
+        pcall(starterGui.SetCore, starterGui, "ResetButtonCallback", p5)
+    end
+end
+local function step()
+    local v53 = characterController
+    local Humanoid = v53.Humanoid
+    local root = v53.Root
+
+    if not Humanoid or not root or not u14 or not not v53:Is("Knocked") or not v53:IsAlive() then
+        return
+    end
+
+    local humanoidMoveDirection = Humanoid.MoveDirection
+    local v57 = root.CFrame.LookVector:Dot(humanoidMoveDirection)
+    local v58 = root.CFrame.RightVector:Dot(humanoidMoveDirection)
+
+    if v53:Is("Occupied") and not v53:Is("Holding") and not v53:Is("Throwing") or v53:Is("Shoved") then
+        local weaveMove = root:FindFirstChild("WeaveMove")
+
+        if weaveMove then
+            weaveMove:Destroy()
+        end
+
+        return
+    end
+
+    if Humanoid:GetState() == Enum.HumanoidStateType.FallingDown or Humanoid:GetState() == Enum.HumanoidStateType.PlatformStanding and not v53:Is("Biking") then
+        local v60 = u17
+
+        if u16 ~= false then
+            u16 = false
+            pcall(starterGui.SetCoreGuiEnabled, starterGui, Enum.CoreGuiType.Backpack, false)
+        end
+
+        if v60 ~= u17 then
+            u17 = v60
+            pcall(starterGui.SetCore, starterGui, "ResetButtonCallback", v60)
+        end
+
+        local weaveMove = root:FindFirstChild("WeaveMove")
+
+        if weaveMove then
+            weaveMove:Destroy()
+        end
+
+        return
+    end
+
+    local v62 = v53:Is("PVP")
+
+    if u16 ~= true then
+        u16 = true
+        pcall(starterGui.SetCoreGuiEnabled, starterGui, Enum.CoreGuiType.Backpack, true)
+    end
+
+    if v62 ~= u17 then
+        u17 = v62
+        pcall(starterGui.SetCore, starterGui, "ResetButtonCallback", v62)
+    end
+
+    local v63 = currentWeaponIdle()
+    local v64
+
+    if u15 and not v63 then
+        local v65 = characterController:Get("Style") or dataController:Get("Class") or "Amateur"
+        local v66 = classes[v65]
+
+        v64 = if v66 and v66.Weapon then u15 else if characterController:FistsUp() then u15 else nil
+    else
+        v64 = nil
+    end
+
+    if u15 and u15.IsPlaying and v64 ~= u15 then
+        u15:Stop()
+    end
+
+    if v64 and not v64.IsPlaying and not v53:Get("HasPickup") then
+        if v64.Priority == Enum.AnimationPriority.Idle then
+            u14.Idle:Stop()
+        end
+
+        v64:Play()
+    end
+
+    if humanoidMoveDirection.Magnitude <= 0 then
+        u14.Front:Stop(0.7)
+        u14.Back:Stop(0.7)
+        combatController:StopWeave()
+
+        if v53:Is("Holding") then
+        elseif v63 then
+            if not v63.IsPlaying then
+                u14.Idle:Stop()
+                v63:Play()
+            end
+        elseif v64 and v64.Priority == Enum.AnimationPriority.Idle then
+        elseif not u14.Idle.IsPlaying and not v53:Get("HasPickup") then
+            u14.Idle:Play()
+        end
+
+        return
+    end
+
+    if u14 and u14.Idle.IsPlaying then
+        u14.Idle:Stop()
+    end
+
+    v62 = combatController:IsWeaving()
+
+    if v57 >= 0.5 then
+        if v62 then
+            combatController:PlayWeave("Front", root.CFrame * CFrame.new(0, 0, -2.2))
+
+            return
+        end
+
+        if not u14.Front.IsPlaying then
+            u14.Front:Play()
+            u14.Back:Stop(0.7)
+            u14.Front:AdjustWeight(0.99, 0.7)
+
+            return
+        end
+    elseif v57 <= -0.5 then
+        if v62 then
+            combatController:PlayWeave("Back", root.CFrame * CFrame.new(0, 0, 2.2))
+
+            return
+        end
+
+        if not u14.Back.IsPlaying then
+            u14.Back:Play()
+            u14.Front:Stop(0.7)
+            u14.Back:AdjustWeight(0.99, 0.7)
+
+            return
+        end
+    elseif v58 >= 0.9 then
+        if v62 then
+            combatController:PlayWeave("Right", root.CFrame * CFrame.new(2.2, 0, 0))
+
+            return
+        end
+
+        if not u14.Front.IsPlaying and v58 >= 0.95 then
+            u14.Front:Play()
+            u14.Back:Stop(0.7)
+
+            return
+        end
+    elseif v58 <= -0.9 then
+        if v62 then
+            combatController:PlayWeave("Left", root.CFrame * CFrame.new(-2.2, 0, 0))
+
+            return
+        end
+
+        if not u14.Front.IsPlaying and v58 <= -0.95 then
+            u14.Front:Play()
+            u14.Back:Stop(0.7)
+        end
+    end
+end
+local function onCharacterAdded(_, p7)
+    u16 = true
+    u17 = true
+    u15 = nil
+    loadMovement(characterController:Is("Fighting"))
+
+    local animationsStyle = animations.Style
+    local characterControllerAnimator = characterController.Animator
+    local v71 = characterController:Get("Style") or dataController:Get("Class") or "Amateur"
+    local v72 = animationsStyle(characterControllerAnimator, v71)
+    local idle = v72 and v72.Idle
+
+    if u15 and idle ~= u15 and u15.IsPlaying then
+        u15:Stop()
+    end
+
+    u15 = idle
+    p7:Connect(characterController.StateChanged, function(p8, p9)
+        if p8 == "Fighting" then
+            loadMovement(p9 == true)
+        elseif p8 == "Style" then
+            loadMovement(characterController:Is("Fighting"))
+
+            local animationsStyle = animations.Style
+            local characterControllerAnimator = characterController.Animator
+            local v80 = characterController:Get("Style") or dataController:Get("Class") or "Amateur"
+            local v81 = animationsStyle(characterControllerAnimator, v80)
+            local idle = v81 and v81.Idle
+
+            if u15 and idle ~= u15 and u15.IsPlaying then
+                u15:Stop()
+            end
+
+            u15 = idle
+        end
+    end)
+    p7:Connect(runService.RenderStepped, step)
+    p7:Add(function()
+        u14 = nil
+        u15 = nil
+    end)
+end
+
+return {
+    Init = function(_)
+        characterController.CharacterAdded:Connect(onCharacterAdded)
+    end,
+    Start = function(_)
+    end
+}

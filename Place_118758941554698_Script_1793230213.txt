@@ -1,0 +1,25 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.EmoteController
+-- Took 0.03s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local controllers = game:GetService("ReplicatedStorage"):WaitForChild("Client").Controllers
+local inputController = require(controllers.InputController)
+local characterController = require(controllers.CharacterController)
+local uiController = require(controllers.UIController)
+
+return {
+    Toggle = function(_)
+        uiController:Toggle("Emotes")
+    end,
+    Init = function(p2)
+        inputController.Began:Connect(function(p3)
+            if p3 == "Emote" and characterController:IsAlive() then
+                p2:Toggle()
+            end
+        end)
+    end,
+    Start = function(_)
+    end
+}

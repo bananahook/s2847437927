@@ -1,0 +1,116 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.EffectsController
+-- Took 0.06s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local players: Players = game:GetService("Players")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local remotes = require(shared.Net.Remotes)
+local assets = require(shared.Config.Assets)
+local log = require(shared.Util.Log)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local cameraController = require(client.Controllers.CameraController)
+local settingsController = require(client.Controllers.SettingsController)
+local t1: {[any]: any} = {}
+local t2: {[any]: any} = {}
+
+local function loadEffects()
+    for iterFirst, iterSecond in client.Effects:GetChildren() do
+        if iterSecond:IsA("ModuleScript") then
+            local ok, result = pcall(require, iterSecond)
+
+            if ok and typeof(result) == "function" then
+                t1[iterSecond.Name] = result
+            else
+                local logWarn = log.warn
+                local v19 = iterSecond.Name
+                local text: string = tostring(result)
+                local v21 = ("could not load effect %*: %*"):format(v19, text)
+
+                logWarn("EffectsController", v21)
+            end
+        end
+    end
+end
+local function run(p1, ...)
+    local v23 = t1[p1]
+
+    if not v23 then
+        local logDebug = log.debug
+        local v25 = ("no effect named %*"):format(p1)
+
+        logDebug("EffectsController", v25)
+
+        return
+    end
+
+    local ok, result = pcall(v23, t2, ...)
+
+    if not ok then
+        local logWarn = log.warn
+        local v29 = ("%* failed: %*"):format(p1, result)
+
+        logWarn("EffectsController", v29)
+    end
+end
+
+return {
+    Init = function(_)
+        local cameraShaker = replicatedStorage.Packages:FindFirstChild("CameraShaker")
+        local u32 = nil
+        local u33 = nil
+
+        if cameraShaker then
+            local v34 = require(cameraShaker)
+
+            u32 = v34.new(Enum.RenderPriority.Camera.Value, function(p3)
+                workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame * p3
+            end)
+            u32:Start()
+            u33 = v34.Presets
+        end
+
+        t2.Player = players.LocalPlayer
+        t2.Camera = cameraController
+        t2.Assets = assets
+        t2.EffectAssets = assets.Effects
+        t2.Debris = workspace:WaitForChild("Debris")
+
+        function t2.Shake(p4)
+            if not u32 then
+                return
+            end
+
+            local v41 = if typeof(p4) == "string" then u33[p4] else p4
+
+            if v41 then
+                u32:Shake(v41)
+            end
+        end
+        function t2.ShakeOnce(p5, p6, p7, p8, p9, p10)
+            if u32 then
+                u32:ShakeOnce(p5, p6, p7, p8, p9, p10)
+            end
+        end
+        function t2.Settings(p11)
+            return settingsController:Get(p11)
+        end
+        function t2.LowGraphics()
+            return settingsController:Get("Low Graphics")
+        end
+
+        loadEffects()
+
+        local effectsService = remotes.Client("EffectsService")
+
+        effectsService.Play:Connect(run)
+        effectsService.PlayFast:Connect(run)
+    end,
+    Start = function(_)
+    end,
+    Play = function(_, p14, ...)
+        run(p14, ...)
+    end
+}

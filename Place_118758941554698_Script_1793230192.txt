@@ -1,0 +1,166 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.CharacterController
+-- Took 0.05s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local players: Players = game:GetService("Players")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local replicatedStoragePackages = replicatedStorage.Packages
+local signal = require(replicatedStoragePackages.Signal)
+local trove = require(replicatedStoragePackages.Trove)
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local characterUtil = require(shared.Util.CharacterUtil)
+local remotes = require(shared.Net.Remotes)
+local LocalPlayer: Player = players.LocalPlayer
+local v10 = signal.new()
+local v11 = signal.new()
+local v12 = signal.new()
+local v13 = signal.new()
+
+local function waitForServerSetup(p1)
+    local n1 = os.clock() + 40
+
+    while true do
+        if p1:GetAttribute("Style") ~= nil then
+            break
+        end
+
+        if p1.Parent == nil or p1 ~= LocalPlayer.Character or n1 < os.clock() then
+            return p1.Parent ~= nil and p1 == LocalPlayer.Character
+        end
+
+        task.wait(0.1)
+    end
+
+    return true
+end
+local function onCharacterAdded(player, character)
+    local humanoid, root = characterUtil.WaitForParts(character)
+
+    if not humanoid or not waitForServerSetup(character) then
+        return
+    end
+
+    if character ~= LocalPlayer.Character then
+        return
+    end
+
+    local animator = humanoid:FindFirstChildOfClass("Animator") or humanoid:WaitForChild("Animator", 5)
+
+    if animator and character == LocalPlayer.Character then
+        local trove2 = trove.new()
+
+        player.Character = character
+        player.Humanoid = humanoid
+        player.Root = root
+        player.Animator = animator
+        player.Trove = trove2
+        trove2:Connect(character.AttributeChanged, function(p4)
+            player.StateChanged:Fire(p4, character:GetAttribute(p4))
+        end)
+        trove2:Connect(humanoid.Died, function()
+            player.Died:Fire()
+        end)
+        player.CharacterAdded:Fire(character, trove2)
+        task.spawn(function()
+            require(script.Parent.LoadingController):WaitForFinish()
+
+            if LocalPlayer.Character ~= character then
+                return
+            end
+
+            pcall(function()
+                remotes.Client("CharacterService"):Ready()
+            end)
+        end)
+
+        return
+    end
+end
+local function onCharacterRemoving(player, p6)
+    if p6 ~= player.Character then
+        return
+    end
+
+    player.CharacterRemoving:Fire(p6)
+
+    if player.Trove then
+        player.Trove:Destroy()
+    end
+
+    player.Character = nil
+    player.Humanoid = nil
+    player.Root = nil
+    player.Animator = nil
+    player.Trove = nil
+end
+
+return {
+    CharacterAdded = v10,
+    CharacterRemoving = v11,
+    StateChanged = v12,
+    Died = v13,
+    Character = nil,
+    Humanoid = nil,
+    Root = nil,
+    Animator = nil,
+    Trove = nil,
+    Init = function(_)
+    end,
+    Start = function(p8)
+        LocalPlayer.CharacterAdded:Connect(function(character: Model)
+            task.spawn(onCharacterAdded, p8, character)
+        end)
+        LocalPlayer.CharacterRemoving:Connect(function(character: Model)
+            local player = p8
+
+            if character ~= player.Character then
+                return
+            end
+
+            player.CharacterRemoving:Fire(character)
+
+            if player.Trove then
+                player.Trove:Destroy()
+            end
+
+            player.Character = nil
+            player.Humanoid = nil
+            player.Root = nil
+            player.Animator = nil
+            player.Trove = nil
+        end)
+
+        if LocalPlayer.Character then
+            task.spawn(onCharacterAdded, p8, LocalPlayer.Character)
+        end
+    end,
+    Get = function(player, p12)
+        if player.Character then
+            return (player.Character:GetAttribute(p12))
+        end
+
+        return nil
+    end,
+    Is = function(p13, p14)
+        return p13:Get(p14) == true
+    end,
+    IsAlive = function(player)
+        local u34 = false
+
+        if player.Character ~= nil then
+            u34 = characterUtil.IsAlive(player.Character)
+        end
+
+        return u34
+    end,
+    FistsUp = function(player)
+        local Character = player.Character
+
+        return Character ~= nil and Character:FindFirstChild("Fight") ~= nil
+    end,
+    InCombat = function(p17)
+        return p17:IsAlive() and p17:FistsUp() and p17:Is("PVP")
+    end
+}

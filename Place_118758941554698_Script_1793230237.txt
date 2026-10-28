@@ -1,0 +1,371 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.LoadingController
+-- Took 0.04s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local contentProvider: ContentProvider = game:GetService("ContentProvider")
+local lighting: Lighting = game:GetService("Lighting")
+local players: Players = game:GetService("Players")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local runService: RunService = game:GetService("RunService")
+local soundService: SoundService = game:GetService("SoundService")
+local starterGui: StarterGui = game:GetService("StarterGui")
+local tweenService: TweenService = game:GetService("TweenService")
+local signal = require(replicatedStorage.Packages.Signal)
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local assets = require(shared.Config.Assets)
+local places = require(shared.Config.Places)
+local ranked = require(shared.Config.Ranked)
+local remotes = require(shared.Net.Remotes)
+local log = require(shared.Util.Log)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local dataController = require(client.Controllers.DataController)
+local uiController = require(client.Controllers.UIController)
+local rigManager = require(client.UI.Core.RigManager)
+local strokeScale = require(client.UI.Core.StrokeScale)
+local v21 = signal.new()
+local LocalPlayer: Player = players.LocalPlayer
+local u23: boolean = false
+local v24 = os.clock()
+
+local function loadingAssets()
+    return replicatedStorage:WaitForChild("Assets"):WaitForChild("Loading")
+end
+local function preloadList()
+    local t3: {[any]: any} = {}
+
+    for iterFirst, iterSecond in replicatedStorage.Assets:GetChildren() do
+        if iterSecond.Name ~= "Loading" then
+            table.insert(t3, iterSecond)
+        end
+    end
+
+    local v37 = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("Main")
+
+    if v37 then
+        table.insert(t3, v37)
+    end
+
+    return t3
+end
+local function startCamera(p1)
+    local loading: Instance = replicatedStorage:WaitForChild("Assets"):WaitForChild("Loading")
+    local v40 = places.IsPro()
+    local v41: Instance = loading:FindFirstChild(if v40 then "Pro" else "Normal") or loading:FindFirstChild("Normal")
+    local clone = v41.LookAt:Clone()
+    local clone2 = v41.Starter:Clone()
+
+    clone.Parent = workspace
+    clone2.Parent = workspace
+    p1.Add(clone)
+    p1.Add(clone2)
+
+    local CurrentCamera: Camera = workspace.CurrentCamera
+
+    CurrentCamera.CameraType = Enum.CameraType.Scriptable
+
+    local n1: number = 0
+    local n2 = 0
+    local u47: boolean = true
+
+    p1.Add(runService.RenderStepped:Connect(function()
+        n1 = (n1 + 0.001) % 360
+
+        if n2 <= -0.04 then
+            u47 = false
+        elseif n2 >= 0.04 then
+            u47 = true
+        end
+
+        n2 = math.clamp(n2 + (if u47 then -0.01 else 0.01), -0.04, 0.04)
+
+        local clone2CFrame = clone2.CFrame
+        local cloneCFrame = clone.CFrame
+        local cFrameAngles = CFrame.Angles
+        local v112 = math.rad(n2)
+        local v113 = math.rad(n1)
+        local cFrame = cFrameAngles(v112, v113, 0)
+
+        clone2.CFrame = clone2CFrame:Lerp(cloneCFrame * cFrame * CFrame.new(0, 0, -10), 0.01)
+        CurrentCamera.CFrame = clone2.CFrame
+    end))
+    p1.Add(function()
+        CurrentCamera.CameraType = Enum.CameraType.Custom
+    end)
+end
+local function runPreload(p2, p3)
+    local logo = p2.Logo
+    local current = p2.Current
+    local skip = p2.SKIP
+    local v53 = preloadList()
+    local v54 = math.max(#v53, 1)
+    local n1: number = 0
+
+    task.delay(5, function()
+        if n1 < v54 and not p3() then
+            skip.Visible = true
+        end
+    end)
+
+    for iterFirst, iterSecond in v53 do
+        task.spawn(function()
+            pcall(contentProvider.PreloadAsync, contentProvider, { iterSecond })
+            n1 += 1
+
+            if p2.Parent then
+                current.Text = ("- %* -"):format(iterSecond.Name)
+
+                local uiGradient = logo.Logo:FindFirstChildOfClass("UIGradient")
+
+                if uiGradient then
+                    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Exponential)
+                    local vector2 = Vector2.new(0, -(n1 / v54))
+
+                    tweenService:Create(uiGradient, tweenInfo, { Offset = vector2 }):Play()
+                end
+            end
+        end)
+    end
+
+    while v54 > n1 and not p3() and os.clock() - v24 < 30 do
+        task.wait(0.1)
+    end
+
+    skip.Visible = false
+    current.Text = "DONE"
+
+    local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Sine)
+    local logoLogo = logo.Logo
+    local tweenInfo2 = TweenInfo.new(0.3, Enum.EasingStyle.Sine)
+
+    tweenService:Create(logoLogo, tweenInfo2, { TextTransparency = 0 }):Play()
+    task.wait(0.5)
+    tweenService:Create(p2.Shadow, tweenInfo, { ImageTransparency = 1 }):Play()
+    tweenService:Create(logo.Logo, tweenInfo, { TextTransparency = 1 }):Play()
+    tweenService:Create(logo, tweenInfo, { TextTransparency = 1 }):Play()
+    tweenService:Create(p2.Desc, tweenInfo, { TextTransparency = 1 }):Play()
+    tweenService:Create(current, tweenInfo, { TextTransparency = 1 }):Play()
+    task.wait(2)
+end
+local function pickGender(p4)
+    local loading: Instance = replicatedStorage:WaitForChild("Assets"):WaitForChild("Loading")
+    local genders = p4.Genders
+    local gendersMale = genders.Male
+    local gendersFemale = genders.Female
+    local gendersLabels = genders.Labels
+    local t4: {[any]: any} = {}
+
+    for iterFirst, iterSecond in { [gendersMale] = "BoyIdle", [gendersFemale] = "GirlIdle" }, nil, nil do
+        local rig = iterFirst.ViewportFrame.WorldModel:FindFirstChild("Rig")
+        local v71 = rigManager.Animator(rig)
+        local foundChild: Instance = loading:FindFirstChild(iterSecond)
+
+        if v71 and foundChild then
+            local animationTrack = v71:LoadAnimation(foundChild)
+
+            animationTrack.Looped = true
+            animationTrack:Play()
+            table.insert(t4, animationTrack)
+        end
+    end
+
+    for iterFirst2, iterSecond2 in gendersLabels:GetChildren() do
+        iterSecond2.Visible = true
+    end
+
+    gendersMale.Visible = true
+    gendersFemale.Visible = true
+
+    local playerService = remotes.Client("PlayerService")
+
+    gendersMale.Select.TextButton.Activated:Connect(function()
+        assets.PlayUISound("Click")
+        playerService.SetGender:Fire("Male")
+    end)
+    gendersFemale.Select.TextButton.Activated:Connect(function()
+        assets.PlayUISound("Click")
+        playerService.SetGender:Fire("Female")
+    end)
+
+    local v77
+
+    while true do
+        v77 = dataController:Get("Gender")
+
+        if v77 ~= nil and v77 ~= "" then
+            break
+        end
+
+        dataController.Changed:Wait()
+    end
+
+    local v78 = v77
+
+    for iterFirst3, iterSecond3 in gendersLabels:GetChildren() do
+        iterSecond3.Visible = false
+    end
+
+    local v81 = if v78 == "Male" then gendersMale else gendersFemale
+
+    (if v78 == "Male" then gendersFemale else gendersMale).Visible = false
+    v81.Select.Visible = false
+
+    local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Quad)
+    local uDim2 = UDim2.new(0.5, 0, v81.Position.Y.Scale, 0)
+
+    tweenService:Create(v81, tweenInfo, { Position = uDim2 }):Play()
+    task.wait(1.7)
+
+    for key, value in t4 do
+        value:Stop()
+    end
+end
+
+local module: {[any]: any} = { Finished = v21 }
+local t2: {[any]: any} = {
+    Cleanup = {}
+}
+
+local function finish()
+    if t2.Music then
+        t2.Music:Stop()
+    end
+
+    for iterFirst, iterSecond in t2.Cleanup, nil, nil do
+        if typeof(iterSecond) == "RBXScriptConnection" then
+            iterSecond:Disconnect()
+        elseif typeof(iterSecond) == "function" then
+            iterSecond()
+        elseif typeof(iterSecond) == "Instance" then
+            iterSecond:Destroy()
+        end
+    end
+
+    t2.Cleanup = {}
+
+    if t2.Screen then
+        t2.Screen:Destroy()
+    end
+
+    uiController:Show()
+
+    local blur = t2.Blur
+
+    if blur then
+        local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Exponential)
+
+        tweenService:Create(blur, tweenInfo, { Size = 0 }):Play()
+        task.delay(2, function()
+            blur:Destroy()
+        end)
+    end
+
+    pcall(starterGui.SetCoreGuiEnabled, starterGui, Enum.CoreGuiType.Backpack, true)
+    u23 = true
+    module.Finished:Fire()
+end
+local function run()
+    if ranked.IsMatchPlace() then
+        dataController:WaitForLoad(60)
+        finish()
+
+        return
+    end
+
+    pcall(starterGui.SetCoreGuiEnabled, starterGui, Enum.CoreGuiType.Backpack, false)
+
+    local music = soundService:FindFirstChild("Music") and soundService.Music:FindFirstChild("LoadingMusic")
+
+    t2.Music = music
+
+    if music then
+        music:Play()
+    end
+
+    local clone = replicatedStorage:WaitForChild("Assets"):WaitForChild("Loading").Loading:Clone()
+
+    t2.Screen = clone
+    clone.Version.Text = ("Ver: %*"):format(LocalPlayer.UserId)
+    strokeScale.Attach(clone)
+    clone.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local blurEffect: BlurEffect = Instance.new("BlurEffect")
+
+    blurEffect.Size = 15
+    blurEffect.Parent = lighting
+    t2.Blur = blurEffect
+    startCamera({
+        Add = function(p5)
+            table.insert(t2.Cleanup, p5)
+        end
+    })
+
+    local u93: boolean = false
+
+    clone.SKIP.Activated:Connect(function()
+        u93 = true
+        clone.SKIP.Visible = false
+    end)
+
+    local ok, result = pcall(runPreload, clone, function()
+        return u93
+    end)
+
+    if not ok then
+        local logWarn = log.warn
+        local v97 = ("preload failed: %*"):format(result)
+
+        logWarn("LoadingController", v97)
+    end
+
+    if not dataController:WaitForLoad(60) then
+        log.warn("LoadingController", "profile not in after the wait; showing the interface anyway")
+    end
+
+    if dataController:Get("Gender") == "" then
+        local ok2, result2 = pcall(pickGender, clone)
+
+        if not ok2 then
+            local v100 = log.warn
+            local v101 = ("gender pick failed: %*"):format(result2)
+
+            v100("LoadingController", v101)
+        end
+    end
+
+    finish()
+
+    if runService:IsStudio() then
+        local logInfo = log.info
+        local v103 = os.clock()
+        local v104 = ("loaded in %*s"):format(math.round((v103 - v24) * 10) / 10)
+
+        logInfo("LoadingController", v104)
+    end
+end
+function module.IsFinished(_)
+    return u23
+end
+function module.WaitForFinish(p7)
+    if not u23 then
+        p7.Finished:Wait()
+    end
+end
+function module.Init(_)
+    task.spawn(function()
+        local ok, result = pcall(run)
+
+        if not ok then
+            local logWarn = log.warn
+            local v122 = ("failed: %*; showing the interface anyway"):format(result)
+
+            logWarn("LoadingController", v122)
+            finish()
+        end
+    end)
+end
+function module.Start(_)
+end
+
+return module

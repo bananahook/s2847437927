@@ -1,0 +1,134 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.MobileLayoutController
+-- Took 0.03s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local mobileLayout = require(shared.Config.MobileLayout)
+local remotes = require(shared.Net.Remotes)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local dataController = require(client.Controllers.DataController)
+local hudController = require(client.Controllers.HUDController)
+local inputController = require(client.Controllers.InputController)
+local mobileLayoutEditor = require(client.UI.MobileLayoutEditor)
+local u10 = nil
+local t1: {[any]: any} = {}
+local t2: {[any]: any} = {}
+local u13 = nil
+local u14: boolean = false
+
+local function collect()
+    local v20 = hudController:GetGui()
+
+    for iterFirst, iterSecond in mobileLayout.Buttons, nil, nil do
+        local foundChild = v20:FindFirstChild(iterSecond.Folder)
+        local v24 = foundChild and foundChild:FindFirstChild(iterSecond.Name)
+
+        if v24 and v24:IsA("GuiObject") and not t2[iterSecond.Name] then
+            t2[iterSecond.Name] = { Button = v24, Spec = iterSecond }
+            t1[iterSecond.Name] = { Position = v24.Position, Size = v24.Size }
+        end
+    end
+end
+local function entryFor(p1, p2)
+    return p2 and p2[p1.Follows or p1.Name]
+end
+local function refreshEditButton()
+    if u13 then
+        u13.Visible = inputController:IsMobile() and not u14
+    end
+end
+
+local module: {[any]: any} = {
+    Defaults = function(_)
+        return t1
+    end,
+    Buttons = function(_)
+        return t2
+    end,
+    Apply = function(_, p6)
+        for key, value in t2 do
+            local v33 = t1[key]
+            local spec = value.Spec
+            local v35 = p6 and p6[spec.Follows or spec.Name]
+
+            if v35 then
+                value.Button.Position = UDim2.fromScale(v35.X, v35.Y)
+                value.Button.Size = UDim2.fromScale(v33.Size.X.Scale * v35.S, v33.Size.Y.Scale * v35.S)
+            else
+                value.Button.Position = v33.Position
+                value.Button.Size = v33.Size
+            end
+        end
+    end,
+    Save = function(p7, p8)
+        u10.SetMobileLayout:Fire(p8)
+        p7:Apply(p8)
+    end
+}
+
+local function openEditor()
+    if u14 then
+        return
+    end
+
+    u14 = true
+
+    if u13 then
+        u13.Visible = inputController:IsMobile() and not u14
+    end
+
+    local mobileLayoutEditorOpen = mobileLayoutEditor.Open
+    local v39 = hudController:GetGui()
+
+    mobileLayoutEditorOpen(v39, {
+        Buttons = t2,
+        Defaults = t1,
+        Layout = dataController:GetMobileLayout() or {},
+        OnDone = function(p9)
+            u14 = false
+            module:Save(p9)
+
+            if u13 then
+                u13.Visible = inputController:IsMobile() and not u14
+            end
+        end,
+        OnCancel = function()
+            u14 = false
+
+            local t4 = dataController:GetMobileLayout() or {}
+
+            module:Apply(t4)
+
+            if u13 then
+                u13.Visible = inputController:IsMobile() and not u14
+            end
+        end
+    })
+end
+function module.Init(_)
+    u10 = remotes.Client("SettingsService")
+end
+function module.Start(p11)
+    collect()
+
+    local mobileLayoutEditorEditButton = mobileLayoutEditor.EditButton
+    local v43 = hudController:GetGui()
+
+    u13 = mobileLayoutEditorEditButton(v43, openEditor)
+
+    if u13 then
+        u13.Visible = inputController:IsMobile() and not u14
+    end
+
+    inputController.DeviceChanged:Connect(refreshEditButton)
+    dataController:ObservePath("MobileLayout", function(p12)
+        if not u14 then
+            p11:Apply(p12 or {})
+        end
+    end)
+end
+
+return module

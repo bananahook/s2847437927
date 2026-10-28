@@ -1,0 +1,201 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.DataController
+-- Took 0.06s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local signal = require(replicatedStorage.Packages.Signal)
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local remotes = require(shared.Net.Remotes)
+local log = require(shared.Util.Log)
+local v6 = signal.new()
+local v7 = signal.new()
+local u8 = nil
+local t1: {[any]: any} = {}
+local t2: {[any]: any} = {
+    Quest = true,
+    DailyRewards = true,
+    Settings = true,
+    MobileLayout = true,
+    Ranked = true
+}
+local module: {[any]: any} = { Loaded = v6, Changed = v7 }
+
+local function apply(p1, p2)
+    local v15, v16 = p1:match("^([^%.]+)%.?(.*)$")
+
+    if v16 ~= "" then
+        if typeof(u8[v15]) == "table" then
+            u8[v15][v16] = p2
+        end
+    elseif t2[v15] then
+        u8[v15] = p2
+    else
+        u8.Stats[v15] = p2
+    end
+
+    module.Changed:Fire(p1, p2)
+end
+function module.Init(p3)
+    local dataService = remotes.Client("DataService")
+
+    dataService.Changed:Connect(function(p4, p5)
+        if u8 then
+            local v46, v47 = p4:match("^([^%.]+)%.?(.*)$")
+
+            if v47 ~= "" then
+                if typeof(u8[v46]) == "table" then
+                    u8[v46][v47] = p5
+                end
+            elseif t2[v46] then
+                u8[v46] = p5
+            else
+                u8.Stats[v46] = p5
+            end
+
+            module.Changed:Fire(p4, p5)
+
+            return
+        end
+
+        table.insert(t1, { p4, p5 })
+    end)
+    task.spawn(function()
+        local n1 = 2
+
+        while true do
+            local ok, result = pcall(dataService.GetSnapshot, dataService)
+
+            if ok and typeof(result) == "table" then
+                break
+            end
+
+            local logWarn = log.warn
+            local v52 = ("snapshot not ready (%*); retrying in %*s"):format(tostring(result), n1)
+
+            logWarn("DataController", v52)
+            task.wait(n1)
+            n1 = math.min(n1 * 2, 10)
+        end
+
+        u8 = result
+
+        for key, value in t1 do
+            local v55 = value[1]
+            local v56 = value[2]
+            local v57, v58 = v55:match("^([^%.]+)%.?(.*)$")
+
+            if v58 ~= "" then
+                if typeof(u8[v57]) == "table" then
+                    u8[v57][v58] = v56
+                end
+            elseif t2[v57] then
+                u8[v57] = v56
+            else
+                u8.Stats[v57] = v56
+            end
+
+            module.Changed:Fire(v55, v56)
+        end
+
+        t1 = {}
+        p3.Loaded:Fire()
+    end)
+end
+function module.Start(_)
+end
+function module.IsLoaded(_)
+    return u8 ~= nil
+end
+function module.WaitForLoad(p8, p9)
+    if u8 then
+        return true
+    end
+
+    if not p9 then
+        p8.Loaded:Wait()
+
+        return true
+    end
+
+    local n1 = os.clock() + p9
+
+    while not u8 and n1 > os.clock() do
+        task.wait(0.1)
+    end
+
+    return u8 ~= nil
+end
+function module.Get(_, p11)
+    return u8 and u8.Stats[p11]
+end
+function module.GetInventory(_, p13)
+    return u8 and u8.Inventory[p13]
+end
+function module.GetQuest(_)
+    return u8 and u8.Quest
+end
+function module.GetDailyRewards(_)
+    return u8 and u8.DailyRewards
+end
+function module.GetSettings(_)
+    return u8 and u8.Settings
+end
+function module.GetMobileLayout(_)
+    return u8 and u8.MobileLayout
+end
+function module.GetRanked(_)
+    return u8 and u8.Ranked
+end
+function module.ObservePath(p19, p20, p21)
+    local function current()
+        local v59, v60 = p20:match("^([^%.]+)%.?(.*)$")
+        local v61 = u8[v59]
+
+        if v60 == "" or typeof(v61) ~= "table" then
+            return v61
+        end
+
+        return v61[v60]
+    end
+
+    if u8 then
+        local v37, v38 = p20:match("^([^%.]+)%.?(.*)$")
+        local v39 = u8[v37]
+        local v40 = if v38 == "" or typeof(v39) ~= "table" then v39 else v39[v38]
+
+        p21(v40)
+    else
+        p19.Loaded:Once(function()
+            local v62, v63 = p20:match("^([^%.]+)%.?(.*)$")
+            local v64 = u8[v62]
+            local v65 = if v63 == "" or typeof(v64) ~= "table" then v64 else v64[v63]
+
+            p21(v65)
+        end)
+    end
+
+    return p19.Changed:Connect(function(p22, p23)
+        if p22 == p20 then
+            p21(p23)
+        end
+    end)
+end
+function module.Observe(p24, p25, p26)
+    if u8 then
+        p26(u8.Stats[p25])
+    else
+        p24.Loaded:Once(function()
+            p26(u8.Stats[p25])
+        end)
+    end
+
+    return p24.Changed:Connect(function(p27, p28)
+        if p27 == p25 then
+            p26(p28)
+        end
+    end)
+end
+
+return module

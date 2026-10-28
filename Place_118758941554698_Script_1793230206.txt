@@ -1,0 +1,167 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.DebugController
+-- Took 0.04s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local trove = require(replicatedStorage.Packages.Trove)
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local remotes = require(shared.Net.Remotes)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local hitboxes = require(client.Combat.Hitboxes)
+local settingsController = require(client.Controllers.SettingsController)
+local color3 = Color3.fromRGB(235, 235, 235)
+local u9 = nil
+
+local function showWeaveFrames(parent, p2)
+    local weave_debug = parent:FindFirstChild("WEAVE_DEBUG")
+
+    if p2 and not weave_debug then
+        local weave_debug: Highlight = Instance.new("Highlight")
+
+        weave_debug.Name = "WEAVE_DEBUG"
+        weave_debug.FillColor = color3
+        weave_debug.FillTransparency = 0.5
+        weave_debug.OutlineColor = Color3.new(1, 1, 1)
+        weave_debug.OutlineTransparency = 1
+        weave_debug.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        weave_debug.Parent = parent
+    elseif not p2 and weave_debug then
+        weave_debug:Destroy()
+    end
+end
+local function watch(p3, p4)
+    if not p3:IsA("Model") then
+        return
+    end
+
+    local v22 = u9:Extend()
+    local v23 = p3:GetAttributeChangedSignal("WeaveFrames")
+
+    v22:Connect(v23, function()
+        local weaveFrames = p3:GetAttribute("WeaveFrames")
+
+        showWeaveFrames(p3, weaveFrames == true)
+    end)
+    v22:Add(function()
+        local weave_debug = p3:FindFirstChild("WEAVE_DEBUG")
+
+        if weave_debug then
+            weave_debug:Destroy()
+        end
+    end)
+    v22:Connect(p3.AncestryChanged, function(_, p6)
+        if p6 ~= p4 then
+            u9:Remove(v22)
+        end
+    end)
+
+    local weaveFrames = p3:GetAttribute("WeaveFrames")
+
+    showWeaveFrames(p3, weaveFrames == true)
+end
+local function enable()
+    local v25 = trove.new()
+
+    u9 = v25
+    hitboxes.SetVisualizer(true)
+    v25:Add(function()
+        hitboxes.SetVisualizer(false)
+    end)
+
+    local live: Instance = workspace:WaitForChild("Live", 10)
+
+    if live and v25 == u9 then
+        for iterFirst, iterSecond in live:GetChildren() do
+            watch(iterSecond, live)
+        end
+
+        u9:Connect(live.ChildAdded, function(p7)
+            watch(p7, live)
+        end)
+
+        return
+    end
+end
+local function disable()
+    if u9 then
+        u9:Destroy()
+        u9 = nil
+    end
+end
+
+local u14 = nil
+
+local function showRejected(p8)
+    if not u9 then
+        return
+    end
+
+    local v30 = ("[HitDebug] hit dropped: %*"):format(p8)
+
+    print(v30)
+
+    if not u14 or not u14.Parent then
+        local hitDebug: ScreenGui = Instance.new("ScreenGui")
+
+        hitDebug.Name = "HitDebug"
+        hitDebug.ResetOnSpawn = false
+        hitDebug.DisplayOrder = 90
+        hitDebug.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+        u9:Add(hitDebug)
+
+        local frame: Frame = Instance.new("Frame")
+
+        frame.BackgroundTransparency = 1
+        frame.AnchorPoint = Vector2.new(0.5, 0)
+        frame.Position = UDim2.fromScale(0.5, 0.11)
+        frame.Size = UDim2.fromScale(0.8, 0.3)
+        frame.Parent = hitDebug
+
+        local uiListLayout: UIListLayout = Instance.new("UIListLayout")
+
+        uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        uiListLayout.Parent = frame
+        u14 = frame
+    end
+
+    local textLabel: TextLabel = Instance.new("TextLabel")
+
+    textLabel.BackgroundTransparency = 1
+    textLabel.Size = UDim2.new(1, 0, 0, 0)
+    textLabel.AutomaticSize = Enum.AutomaticSize.Y
+    textLabel.TextWrapped = true
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextSize = 18
+    textLabel.TextColor3 = Color3.fromRGB(255, 110, 110)
+    textLabel.TextStrokeTransparency = 0.4
+    textLabel.Text = ("HIT DROPPED: %*"):format(p8)
+
+    local v35 = os.clock()
+
+    textLabel.LayoutOrder = math.floor(v35 * 100)
+    textLabel.Parent = u14
+    task.delay(8, function()
+        textLabel:Destroy()
+    end)
+end
+
+return {
+    Init = function(_)
+        remotes.Client("CombatService").HitRejected:Connect(showRejected)
+    end,
+    Start = function(_)
+        settingsController:Observe("Debug", function(p11)
+            if u9 then
+                u9:Destroy()
+                u9 = nil
+            end
+
+            if p11 then
+                enable()
+            end
+        end)
+    end
+}

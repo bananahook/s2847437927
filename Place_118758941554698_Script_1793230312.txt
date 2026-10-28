@@ -1,0 +1,552 @@
+-- Script Path: game:GetService("ReplicatedStorage").Shared.Net.Remotes
+-- Took 0.08s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local runService: RunService = game:GetService("RunService")
+local replicatedStoragePackages = replicatedStorage.Packages
+local comm = require(replicatedStoragePackages.Comm)
+local t = require(replicatedStoragePackages.t)
+local middleware = require(script.Parent.Middleware)
+
+local function fn(p1, p2, p3)
+    return { kind = "Function", args = p1, perSecond = p2 or 5, burst = p3 or 10 }
+end
+local function up(p4, p5, p6)
+    return { kind = "Signal", args = p4, perSecond = p5 or 10, burst = p6 or 20 }
+end
+local function down()
+    return { kind = "Signal", down = true }
+end
+local function fast()
+    return { kind = "Signal", down = true, unreliable = true }
+end
+
+local tInstance = t.Instance
+
+local function finiteVector3(p7)
+    if typeof(p7) == "Vector3" then
+        local magnitude = p7.Magnitude
+
+        if magnitude == magnitude and magnitude ~= math.huge then
+            return true
+        end
+
+        return false, "finite Vector3 expected"
+    end
+
+    return false, "Vector3 expected"
+end
+
+local v13 = t.tuple()
+local v14 = t.tuple()
+local v15 = t.tuple(t.integer, t.string, t.string)
+local v16 = t.tuple(t.integer, tInstance, finiteVector3)
+local v17 = t.tuple(t.boolean)
+local v18 = t.tuple(t.boolean)
+local v19 = t.tuple(t.integer)
+local v20 = t.tuple()
+local v21 = t.tuple()
+local v22 = t.tuple(t.number, tInstance)
+local v23 = t.tuple(tInstance)
+local v24 = t.tuple()
+local v25 = t.tuple(finiteVector3, finiteVector3)
+local v26 = t.tuple()
+local v27 = t.tuple()
+local v28 = t.tuple(t.string, t.boolean)
+local v29 = t.tuple(finiteVector3)
+local v30 = t.tuple()
+local v31 = t.tuple()
+local v32 = t.tuple(t.boolean)
+local v33 = t.tuple(t.string, t.string)
+local v34 = t.tuple(t.string, t.string)
+local v35 = t.tuple(t.string, t.string)
+local v36 = t.tuple(t.string)
+local v37 = t.tuple(t.string, t.integer)
+local v38 = t.tuple(t.integer, t.string)
+local tTuple = t.tuple
+local v40 = t.optional(t.integer)
+local v41 = t.optional(t.integer)
+local v42 = tTuple(v40, v41, tInstance)
+local v43 = t.tuple(t.integer, t.optional(tInstance))
+local v44 = t.tuple(t.integer)
+local v45 = t.tuple(tInstance)
+local v46 = t.tuple()
+local v47 = t.tuple()
+local v48 = t.tuple()
+local v49 = t.tuple(t.integer)
+local v50 = t.tuple(t.string)
+local v51 = t.tuple()
+local v52 = t.tuple(t.integer)
+local v53 = t.tuple()
+local v54 = t.tuple(t.integer)
+local v55 = t.tuple(t.string)
+local v56 = t.tuple(t.string, t.boolean)
+local v57 = t.tuple(t.table)
+local v58 = t.tuple(t.string)
+local v59 = t.tuple(t.string)
+local v60 = t.tuple(t.boolean)
+local v61 = t.tuple()
+local v62 = t.tuple(t.optional(t.string))
+local v63 = t.tuple()
+local v64 = t.tuple(t.string)
+local v65 = t.tuple()
+local v66 = t.tuple(t.string)
+local v67 = t.tuple(t.integer)
+local v68 = t.tuple()
+local v69 = t.tuple(t.string, t.boolean)
+local v70 = t.tuple()
+local v71 = t.tuple()
+local v72 = t.tuple(t.integer)
+local v73 = t.tuple(tInstance)
+local v74 = t.tuple(tInstance)
+local v75 = t.tuple(t.string, t.string)
+local v76 = t.tuple(t.string)
+local v77 = t.tuple(t.number)
+local v78 = t.tuple()
+local v79 = t.tuple()
+local v80 = t.tuple()
+local v81 = t.tuple(t.boolean)
+local v82 = t.tuple(tInstance)
+local v83 = t.tuple(tInstance)
+local v84 = t.tuple(tInstance)
+local v85 = t.tuple()
+local v86 = t.tuple()
+local v87 = t.tuple()
+local v88 = t.tuple(t.string)
+local v89 = t.tuple(t.string, t.integer)
+local v90 = t.tuple()
+local v91 = t.tuple(t.string)
+local v92 = t.tuple()
+local v93 = t.tuple()
+local v94 = t.tuple(t.string, t.integer)
+local v95 = t.tuple()
+local v96 = t.tuple()
+local v97 = t.tuple(t.string)
+local v98 = t.tuple()
+local v99 = t.tuple()
+local v100 = t.tuple(t.string, t.string, t.number)
+local v101 = t.tuple()
+local v102 = t.tuple(t.string, t.string, t.string, t.number)
+local v103 = t.tuple(t.string)
+local v104 = t.tuple(t.string, t.string, t.union(t.number, t.string, t.boolean))
+local v105 = t.tuple(t.string, t.string, t.string, t.string)
+local v106 = t.tuple(t.string, t.string, t.optional(t.string))
+local v107 = t.tuple(t.string, t.table)
+local v108 = t.tuple()
+local v109 = t.tuple()
+local v110 = t.tuple(t.string, t.table)
+local v111 = t.tuple(t.string)
+local v112 = t.tuple(t.string, t.optional(t.string))
+local v113 = t.tuple()
+local v114 = t.tuple(t.string, t.table)
+local v115 = t.tuple(t.string)
+local v116 = t.tuple()
+local v117 = t.tuple(t.table)
+local module: {[any]: any} = {
+    Contract = {
+        DataService = {
+            GetSnapshot = { kind = "Function", perSecond = 0.5, burst = 2, args = v13 },
+            Changed = { kind = "Signal", down = true }
+        },
+        NotificationService = {
+            Notify = { kind = "Signal", down = true }
+        },
+        CharacterService = {
+            Ready = { kind = "Function", perSecond = 1, burst = 2, args = v14 },
+            HumanoidState = { kind = "Signal", down = true }
+        },
+        CombatService = {
+            Swing = { kind = "Signal", perSecond = 8, burst = 12, args = v15 },
+            HitReport = { kind = "Signal", perSecond = 10, burst = 14, args = v16 },
+            Weave = { kind = "Signal", perSecond = 10, burst = 10, args = v17 },
+            Sprint = { kind = "Signal", perSecond = 6, burst = 10, args = v18 },
+            Emote = { kind = "Signal", perSecond = 2, burst = 4, args = v19 },
+            StopEmote = { kind = "Signal", perSecond = 4, burst = 6, args = v20 },
+            Struggle = { kind = "Signal", perSecond = 20, burst = 25, args = v21 },
+            Cooldown = { kind = "Signal", down = true },
+            StruggleStarted = { kind = "Signal", down = true },
+            StruggleUpdated = { kind = "Signal", down = true },
+            StruggleEnded = { kind = "Signal", down = true },
+            CutsceneCamera = { kind = "Signal", down = true },
+            ImpactFrame = { kind = "Signal", down = true },
+            HitRejected = { kind = "Signal", down = true }
+        },
+        EffectsService = {
+            Play = { kind = "Signal", down = true },
+            PlayFast = { kind = "Signal", down = true, unreliable = true }
+        },
+        MoneyService = {
+            SendMoney = { kind = "Function", perSecond = 1, burst = 2, args = v22 }
+        },
+        ThrowableService = {
+            Pickup = { kind = "Signal", perSecond = 3, burst = 5, args = v23 },
+            ThrowStart = { kind = "Signal", perSecond = 3, burst = 5, args = v24 },
+            ThrowReady = { kind = "Signal", down = true },
+            Throw = { kind = "Signal", perSecond = 3, burst = 5, args = v25 },
+            Dunk = { kind = "Signal", perSecond = 2, burst = 4, args = v26 }
+        },
+        VehicleService = {
+            ToggleSkateboard = { kind = "Signal", perSecond = 3, burst = 5, args = v27 },
+            SetBikeMode = { kind = "Signal", perSecond = 6, burst = 10, args = v28 }
+        },
+        NerfService = {
+            Fire = { kind = "Signal", perSecond = 3, burst = 5, args = v29 },
+            Reload = { kind = "Signal", perSecond = 2, burst = 4, args = v30 }
+        },
+        SpraycanService = {
+            Use = { kind = "Signal", perSecond = 2, burst = 3, args = v31 }
+        },
+        PhoneService = {
+            Record = { kind = "Signal", perSecond = 4, burst = 6, args = v32 }
+        },
+        InventoryService = {
+            Equip = { kind = "Signal", perSecond = 4, burst = 8, args = v33 },
+            Unequip = { kind = "Signal", perSecond = 4, burst = 8, args = v34 },
+            Unlock = { kind = "Signal", perSecond = 2, burst = 4, args = v35 },
+            BuyWeapon = { kind = "Signal", perSecond = 2, burst = 4, args = v36 },
+            SetEmoteSlot = { kind = "Signal", perSecond = 4, burst = 8, args = v37 }
+        },
+        ShopService = {
+            Prompt = { kind = "Signal", perSecond = 2, burst = 4, args = v38 },
+            Gift = { kind = "Signal", perSecond = 1, burst = 3, args = v42 },
+            OwnsPass = { kind = "Function", perSecond = 4, burst = 8, args = v43 },
+            GetCrateOdds = { kind = "Function", perSecond = 2, burst = 6, args = v44 },
+            GetGiftInventory = { kind = "Function", perSecond = 2, burst = 4, args = v45 }
+        },
+        CrateService = {
+            Opened = { kind = "Signal", down = true }
+        },
+        SpinService = {
+            Spin = { kind = "Function", perSecond = 2, burst = 3, args = v46 },
+            GetWheel = { kind = "Function", perSecond = 1, burst = 2, args = v47 }
+        },
+        RewardService = {
+            ClaimDaily = { kind = "Signal", perSecond = 1, burst = 2, args = v48 },
+            ClaimFriendCase = { kind = "Signal", perSecond = 1, burst = 3, args = v49 }
+        },
+        QuestService = {
+            Claim = { kind = "Signal", perSecond = 2, burst = 4, args = v50 }
+        },
+        LeaderboardService = {
+            GetAll = { kind = "Function", perSecond = 0.5, burst = 2, args = v51 },
+            Updated = { kind = "Signal", down = true }
+        },
+        ClanService = {
+            Join = { kind = "Signal", perSecond = 1, burst = 2, args = v52 },
+            Leave = { kind = "Signal", perSecond = 1, burst = 2, args = v53 },
+            GetMemberCount = { kind = "Function", perSecond = 1, burst = 3, args = v54 }
+        },
+        PlayerService = {
+            SetGender = { kind = "Signal", perSecond = 1, burst = 2, args = v55 }
+        },
+        SettingsService = {
+            Set = { kind = "Signal", perSecond = 5, burst = 10, args = v56 },
+            SetMobileLayout = { kind = "Signal", perSecond = 1, burst = 3, args = v57 }
+        },
+        RankedService = {
+            SetMode = { kind = "Signal", perSecond = 5, burst = 10, args = v58 },
+            SetRegion = { kind = "Signal", perSecond = 5, burst = 10, args = v59 },
+            SetQueued = { kind = "Function", perSecond = 2, burst = 4, args = v60 },
+            GetStats = { kind = "Function", perSecond = 1, burst = 3, args = v61 },
+            QueueState = { kind = "Signal", down = true },
+            WatchBoard = { kind = "Signal", perSecond = 4, burst = 8, args = v62 },
+            Board = { kind = "Signal", down = true },
+            Phase = { kind = "Signal", down = true },
+            GetPhase = { kind = "Function", perSecond = 1, burst = 3, args = v63 },
+            ChooseStyle = { kind = "Function", perSecond = 5, burst = 10, args = v64 },
+            Leave = { kind = "Function", perSecond = 2, burst = 4, args = v65 }
+        },
+        RankedParty = {
+            Search = { kind = "Function", perSecond = 4, burst = 8, args = v66 },
+            Invite = { kind = "Function", perSecond = 2, burst = 4, args = v67 },
+            CancelInvite = { kind = "Signal", perSecond = 4, burst = 8, args = v68 },
+            Respond = { kind = "Function", perSecond = 2, burst = 4, args = v69 },
+            Leave = { kind = "Function", perSecond = 1, burst = 3, args = v70 },
+            GetState = { kind = "Function", perSecond = 1, burst = 3, args = v71 },
+            GetMember = { kind = "Function", perSecond = 2, burst = 4, args = v72 },
+            State = { kind = "Signal", down = true },
+            Invited = { kind = "Signal", down = true },
+            InviteGone = { kind = "Signal", down = true },
+            InviteResult = { kind = "Signal", down = true }
+        },
+        TradeService = {
+            Request = { kind = "Signal", perSecond = 1, burst = 3, args = v73 },
+            Accept = { kind = "Signal", perSecond = 1, burst = 3, args = v74 },
+            Add = { kind = "Signal", perSecond = 6, burst = 10, args = v75 },
+            Remove = { kind = "Signal", perSecond = 6, burst = 10, args = v76 },
+            SetMoney = { kind = "Signal", perSecond = 3, burst = 6, args = v77 },
+            Ready = { kind = "Signal", perSecond = 2, burst = 4, args = v78 },
+            Unready = { kind = "Signal", perSecond = 2, burst = 4, args = v79 },
+            Cancel = { kind = "Signal", perSecond = 2, burst = 4, args = v80 },
+            SetEnabled = { kind = "Signal", perSecond = 2, burst = 4, args = v81 },
+            Requested = { kind = "Signal", down = true },
+            Began = { kind = "Signal", down = true },
+            Updated = { kind = "Signal", down = true },
+            Timer = { kind = "Signal", down = true },
+            Ended = { kind = "Signal", down = true }
+        },
+        PartyService = {
+            Invite = { kind = "Signal", perSecond = 1, burst = 3, args = v82 },
+            Accept = { kind = "Signal", perSecond = 1, burst = 3, args = v83 },
+            Kick = { kind = "Signal", perSecond = 1, burst = 3, args = v84 },
+            Leave = { kind = "Signal", perSecond = 1, burst = 2, args = v85 },
+            Close = { kind = "Signal", perSecond = 1, burst = 2, args = v86 },
+            Invited = { kind = "Signal", down = true }
+        },
+        ServerBrowserService = {
+            GetServers = { kind = "Function", perSecond = 0.5, burst = 2, args = v87 },
+            TeleportTo = { kind = "Signal", perSecond = 0.5, burst = 2, args = v88 },
+            JoinServer = { kind = "Signal", perSecond = 0.5, burst = 2, args = v89 }
+        },
+        LiveEventsService = {
+            GlobalMessage = { kind = "Signal", down = true }
+        },
+        SkinValueService = {
+            GetAll = { kind = "Function", perSecond = 0.2, burst = 2, args = v90 }
+        },
+        TraitService = {
+            Roll = { kind = "Function", perSecond = 1, burst = 2, args = v91 }
+        },
+        BossService = {
+            GetUpcoming = { kind = "Function", perSecond = 0.5, burst = 2, args = v92 },
+            Upcoming = { kind = "Signal", down = true }
+        },
+        ShutdownService = {
+            Updating = { kind = "Signal", down = true }
+        },
+        UpdateVoteService = {
+            GetVotes = { kind = "Function", perSecond = 0.5, burst = 2, args = v93 },
+            Vote = { kind = "Signal", perSecond = 2, burst = 4, args = v94 },
+            Changed = { kind = "Signal", down = true }
+        },
+        AdminService = {
+            GetAccess = { kind = "Function", perSecond = 0.5, burst = 2, args = v95 },
+            GetDashboard = { kind = "Function", perSecond = 0.5, burst = 2, args = v96 },
+            GetLogs = { kind = "Function", perSecond = 1, burst = 3, args = v97 },
+            GetEconomy = { kind = "Function", perSecond = 0.3, burst = 2, args = v98 },
+            GetValues = { kind = "Function", perSecond = 0.3, burst = 2, args = v99 },
+            SetValue = { kind = "Function", perSecond = 2, burst = 4, args = v100 },
+            GetCatalog = { kind = "Function", perSecond = 0.3, burst = 2, args = v101 },
+            Give = { kind = "Function", perSecond = 1, burst = 3, args = v102 },
+            GetPlayer = { kind = "Function", perSecond = 1, burst = 3, args = v103 },
+            EditStat = { kind = "Function", perSecond = 2, burst = 4, args = v104 },
+            EditInventory = { kind = "Function", perSecond = 2, burst = 4, args = v105 },
+            Moderate = { kind = "Function", perSecond = 1, burst = 3, args = v106 },
+            StartEvent = { kind = "Function", perSecond = 0.5, burst = 2, args = v107 },
+            GetEvents = { kind = "Function", perSecond = 0.5, burst = 2, args = v108 },
+            GetRoles = { kind = "Function", perSecond = 0.5, burst = 2, args = v109 },
+            SaveRole = { kind = "Function", perSecond = 1, burst = 3, args = v110 },
+            DeleteRole = { kind = "Function", perSecond = 1, burst = 3, args = v111 },
+            AssignRole = { kind = "Function", perSecond = 1, burst = 3, args = v112 },
+            GetTags = { kind = "Function", perSecond = 0.5, burst = 2, args = v113 },
+            SaveTag = { kind = "Function", perSecond = 1, burst = 3, args = v114 },
+            DeleteTag = { kind = "Function", perSecond = 1, burst = 3, args = v115 },
+            GetTheme = { kind = "Function", perSecond = 0.5, burst = 2, args = v116 },
+            SaveTheme = { kind = "Function", perSecond = 0.5, burst = 2, args = v117 },
+            LogAdded = { kind = "Signal", down = true },
+            AccessChanged = { kind = "Signal", down = true },
+            ValuesChanged = { kind = "Signal", down = true }
+        }
+    }
+}
+
+finiteVector3 = function(p8, p9)
+    local v132 = module.Contract[p8]
+
+    if not v132 then
+        local v133 = ("Remotes: service %* is not in the contract"):format(p8)
+
+        error(v133, 3)
+    end
+
+    local v134 = v132[p9]
+
+    if not v134 then
+        local v135 = ("Remotes: %*.%* is not in the contract; declare it in Shared/Net/Remotes"):format(p8, p9)
+
+        error(v135, 3)
+    end
+
+    return v134
+end
+
+local function inboundFor(p10, p11, p12)
+    local v139 = ("%*.%*"):format(p10, p11)
+
+    return {
+        middleware.RateLimit(v139, p12.perSecond, p12.burst),
+        middleware.Validate(v139, p12.args)
+    }
+end
+
+fast = function()
+    local remotes: Instance = replicatedStorage:FindFirstChild("Remotes")
+
+    if not remotes then
+        if runService:IsServer() then
+            local remotes: Folder = Instance.new("Folder")
+
+            remotes.Name = "Remotes"
+            remotes.Parent = replicatedStorage
+
+            return remotes
+        end
+
+        remotes = replicatedStorage:WaitForChild("Remotes")
+
+        return remotes
+    end
+
+    return remotes
+end
+
+local t2: {[any]: any} = {}
+
+t2.__index = t2
+
+function module.Server(p13)
+    local v143 = runService:IsServer()
+
+    assert(v143, "Remotes.Server is server-only")
+    v143 = module.Contract[p13]
+
+    local v144 = ("Remotes: service %* is not in the contract"):format(p13)
+
+    assert(v143, v144)
+
+    local object = setmetatable({}, t2)
+
+    object._serviceName = p13
+
+    local new = comm.ServerComm.new
+    local remotes = replicatedStorage:FindFirstChild("Remotes")
+
+    if not remotes then
+        if runService:IsServer() then
+            remotes = Instance.new("Folder")
+            remotes.Name = "Remotes"
+            remotes.Parent = replicatedStorage
+        else
+            remotes = replicatedStorage:WaitForChild("Remotes")
+        end
+    end
+
+    object._comm = new(remotes, p13)
+
+    return object
+end
+function t2.Function(p14, p15, p16)
+    local _serviceName = p14._serviceName
+    local v152 = module.Contract[_serviceName]
+
+    if not v152 then
+        local v153 = ("Remotes: service %* is not in the contract"):format(_serviceName)
+
+        error(v153, 3)
+    end
+
+    local v154 = v152[p15]
+
+    if not v154 then
+        local v155 = ("Remotes: %*.%* is not in the contract; declare it in Shared/Net/Remotes"):format(_serviceName, p15)
+
+        error(v155, 3)
+    end
+
+    v152 = v154.kind == "Function"
+
+    local v156 = ("Remotes: %* is declared as a Signal"):format(p15)
+
+    assert(v152, v156)
+
+    local _comm = p14._comm
+    local v158 = inboundFor(p14._serviceName, p15, v154)
+
+    return _comm:BindFunction(p15, p16, v158)
+end
+function t2.Signal(p17, p18)
+    local _serviceName = p17._serviceName
+    local v162 = module.Contract[_serviceName]
+
+    if not v162 then
+        local v163 = ("Remotes: service %* is not in the contract"):format(_serviceName)
+
+        error(v163, 3)
+    end
+
+    local v164 = v162[p18]
+
+    if not v164 then
+        local v165 = ("Remotes: %*.%* is not in the contract; declare it in Shared/Net/Remotes"):format(_serviceName, p18)
+
+        error(v165, 3)
+    end
+
+    v162 = v164.kind == "Signal"
+
+    local v166 = ("Remotes: %* is declared as a Function"):format(p18)
+
+    assert(v162, v166)
+
+    local v167 = if v164.down then nil else inboundFor(p17._serviceName, p18, v164)
+
+    return p17._comm:CreateSignal(p18, v164.unreliable == true, v167)
+end
+function t2.Property(p19, p20, p21)
+    local _serviceName = p19._serviceName
+    local v172 = module.Contract[_serviceName]
+
+    if not v172 then
+        local v173 = ("Remotes: service %* is not in the contract"):format(_serviceName)
+
+        error(v173, 3)
+    end
+
+    if not v172[p20] then
+        local v174 = ("Remotes: %*.%* is not in the contract; declare it in Shared/Net/Remotes"):format(_serviceName, p20)
+
+        error(v174, 3)
+    end
+
+    return p19._comm:CreateProperty(p20, p21)
+end
+
+local t3: {[any]: any} = {}
+
+function module.Client(p22)
+    local v176 = runService:IsClient()
+
+    assert(v176, "Remotes.Client is client-only")
+    v176 = module.Contract[p22]
+
+    local v177 = ("Remotes: service %* is not in the contract"):format(p22)
+
+    assert(v176, v177)
+
+    if t3[p22] then
+        return t3[p22]
+    end
+
+    local new = comm.ClientComm.new
+    local remotes = replicatedStorage:FindFirstChild("Remotes")
+
+    if not remotes then
+        if runService:IsServer() then
+            remotes = Instance.new("Folder")
+            remotes.Name = "Remotes"
+            remotes.Parent = replicatedStorage
+        else
+            remotes = replicatedStorage:WaitForChild("Remotes")
+        end
+    end
+
+    v176 = new(remotes, false, p22):BuildObject()
+    t3[p22] = v176
+
+    return v176
+end
+
+return module

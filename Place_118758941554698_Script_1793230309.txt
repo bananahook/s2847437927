@@ -1,0 +1,94 @@
+-- Script Path: game:GetService("ReplicatedStorage").Shared.Net.Middleware
+-- Took 0.04s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local players: Players = game:GetService("Players")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local signal = require(replicatedStorage.Packages.Signal)
+local log = require(script.Parent.Parent.Util.Log)
+local t1: {[any]: any} = {}
+local module: {[any]: any} = { Violation = signal.new() }
+
+local function noteRejection(p1, p2, p3, p4)
+    local t3 = t1[p1]
+    local v13 = os.clock()
+
+    if not t3 or v13 - t3.windowStart > 60 then
+        t3 = {
+            counts = {},
+            windowStart = v13
+        }
+        t1[p1] = t3
+    end
+
+    t3.counts[p4] = (t3.counts[p4] or 0) + 1
+
+    local logDebug = log.debug
+    local v15 = ("%* rejected on %*: %* (%* %* this minute)"):format(p1.Name, p2, p3, t3.counts[p4], p4)
+
+    logDebug("Net", v15)
+    module.Violation:Fire(p1, p2, p3, t3.counts[p4])
+end
+
+players.PlayerRemoving:Connect(function(player: Player)
+    t1[player] = nil
+end)
+
+function module.Validate(p6, p7)
+    return function(p8, p9)
+        local v28, v29 = p7(table.unpack(p9, 1, p9.n))
+
+        if not v28 then
+            local v30 = ("bad arguments: %*"):format(v29)
+
+            noteRejection(p8, p6, v30, "bad arguments")
+
+            return false
+        end
+
+        return true
+    end
+end
+function module.RateLimit(p10, p11, p12)
+    local t4: {[any]: any} = {}
+
+    players.PlayerRemoving:Connect(function(player: Player)
+        t4[player] = nil
+    end)
+
+    return function(p14, _)
+        local v34 = os.clock()
+        local t5 = t4[p14]
+
+        if not t5 then
+            t5 = { tokens = p12, last = v34 }
+            t4[p14] = t5
+        end
+
+        t5.tokens = math.min(p12, t5.tokens + (v34 - t5.last) * p11)
+        t5.last = v34
+
+        if t5.tokens < 1 then
+            noteRejection(p14, p10, "rate limit", "rate limit")
+
+            return false
+        end
+
+        t5.tokens = t5.tokens - 1
+
+        return true
+    end
+end
+function module.GetRejectionCount(p16, p17)
+    local v25 = t1[p16]
+
+    if v25 and not (os.clock() - v25.windowStart > 60) then
+        return v25.counts[p17] or 0
+    end
+
+    return 0
+end
+
+return module

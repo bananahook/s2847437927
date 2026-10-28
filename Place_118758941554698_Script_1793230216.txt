@@ -1,0 +1,43 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.EquipController
+-- Took 0.04s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local weaponModels = require(shared.Util.WeaponModels)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local equipEffect = require(client.World.EquipEffect)
+
+local function watch(p1)
+    if not p1:IsA("Model") then
+        return
+    end
+
+    p1.ChildAdded:Connect(function(p2)
+        if p2:GetAttribute(weaponModels.FX_ATTRIBUTE) == true then
+            equipEffect.Play(p2)
+        end
+    end)
+end
+
+return {
+    Init = function(_)
+    end,
+    Start = function(_)
+        local live: Instance = workspace:WaitForChild("Live")
+
+        for iterFirst, iterSecond in live:GetChildren() do
+            if iterSecond:IsA("Model") then
+                iterSecond.ChildAdded:Connect(function(p2)
+                    if p2:GetAttribute(weaponModels.FX_ATTRIBUTE) == true then
+                        equipEffect.Play(p2)
+                    end
+                end)
+            end
+        end
+
+        live.ChildAdded:Connect(watch)
+    end
+}

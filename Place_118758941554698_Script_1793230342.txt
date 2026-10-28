@@ -1,0 +1,46 @@
+-- Script Path: game:GetService("ReplicatedStorage").Shared.Config.Movement
+-- Took 0.02s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+return {
+    WalkSpeed = 10,
+    JogMultiplier = 1.6,
+    ATrainWalkSpeed = 150,
+    MinMoveDirection = 0.1,
+    Stamina = {
+        Max = 100,
+        Tick = 0.3,
+        SprintCost = 3,
+        Regen = 0.8,
+        BikeRunCost = 3,
+        BikeWheelieCost = 1.5
+    },
+    Hypervisor = {
+        BaseSpeed = 15,
+        Punishment = "flag_only",
+        KnockbackStateSeconds = 6,
+        MoverThresholdMultiplier = 1.35,
+        MoverThresholdOffset = 15,
+        MoverLingerSeconds = 1,
+        BurstExceptionMs = 600,
+        Profiles = {
+            sprint = 26,
+            skate = 42,
+            bike = 62,
+            knockback = 90,
+            atrain = 175,
+            carried = 50
+        }
+    },
+    StateProfiles = {
+        Sprinting = "sprint",
+        Skating = "skate",
+        Biking = "bike",
+        Grabbed = "carried",
+        Occupied = "carried",
+        ATrain = "atrain",
+        Knocked = "knockback"
+    }
+}

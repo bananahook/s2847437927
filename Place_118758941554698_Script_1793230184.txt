@@ -1,0 +1,153 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.AuraController
+-- Took 0.03s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local collectionService: CollectionService = game:GetService("CollectionService")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local assets = require(shared.Config.Assets)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local settingsController = require(client.Controllers.SettingsController)
+local object = setmetatable({}, { __mode = "k" })
+
+local function isEffect(p1)
+    return p1:IsA("ParticleEmitter") or p1:IsA("Beam") or p1:IsA("Trail") or p1:IsA("Light")
+end
+local function effectsOn()
+    local v15 = settingsController:Get("Auras")
+
+    if v15 then
+        v15 = not settingsController:Get("Low Graphics")
+    end
+
+    return v15
+end
+local function clear(p2)
+    for iterFirst, iterSecond in p2:GetDescendants() do
+        if iterSecond:GetAttribute("AURA_OBJECT") == true or iterSecond:GetAttribute("AURA_CONTAINER") == true then
+            iterSecond:Destroy()
+        end
+    end
+end
+local function apply(p3, p4)
+    if p4 == object[p3] then
+        return
+    end
+
+    object[p3] = p4
+    clear(p3)
+
+    local v21 = p4
+
+    if v21 then
+        v21 = false
+
+        if p4 ~= "" then
+            v21 = assets.Auras:FindFirstChild(p4)
+        end
+    end
+
+    if not v21 then
+        return
+    end
+
+    collectionService:AddTag(p3, "AuraRig")
+
+    local v22 = settingsController:Get("Auras")
+
+    if v22 then
+        v22 = not settingsController:Get("Low Graphics")
+    end
+
+    local function tag(p5)
+        if p5:IsA("ParticleEmitter") or p5:IsA("Beam") or p5:IsA("Trail") or p5:IsA("Light") then
+            p5.Enabled = v22
+            p5:SetAttribute("AURA_OBJECT", true)
+
+            return
+        end
+
+        if p5:IsA("Attachment") then
+            p5:SetAttribute("AURA_CONTAINER", true)
+        end
+    end
+
+    local clone = v21:Clone()
+
+    for iterFirst, iterSecond in clone:GetChildren() do
+        local foundChild = p3:FindFirstChild(iterSecond.Name)
+
+        if foundChild then
+            for iterFirst2, iterSecond2 in iterSecond:GetChildren() do
+                if iterSecond2:IsA("ParticleEmitter") or iterSecond2:IsA("Beam") or iterSecond2:IsA("Trail") or iterSecond2:IsA("Light") then
+                    iterSecond2.Enabled = v22
+                    iterSecond2:SetAttribute("AURA_OBJECT", true)
+                elseif iterSecond2:IsA("Attachment") then
+                    iterSecond2:SetAttribute("AURA_CONTAINER", true)
+                end
+
+                for iterFirst3, iterSecond3 in iterSecond2:GetDescendants() do
+                    if iterSecond3:IsA("ParticleEmitter") or iterSecond3:IsA("Beam") or iterSecond3:IsA("Trail") or iterSecond3:IsA("Light") then
+                        iterSecond3.Enabled = v22
+                        iterSecond3:SetAttribute("AURA_OBJECT", true)
+                    elseif iterSecond3:IsA("Attachment") then
+                        iterSecond3:SetAttribute("AURA_CONTAINER", true)
+                    end
+                end
+
+                iterSecond2.Parent = foundChild
+            end
+        end
+    end
+
+    clone:Destroy()
+end
+local function track(p6)
+    if not p6:IsA("Model") then
+        return
+    end
+
+    apply(p6, p6:GetAttribute("Aura"))
+    p6:GetAttributeChangedSignal("Aura"):Connect(function()
+        apply(p6, p6:GetAttribute("Aura"))
+    end)
+end
+local function refreshAll()
+    local v33 = settingsController:Get("Auras")
+
+    if v33 then
+        v33 = not settingsController:Get("Low Graphics")
+    end
+
+    for iterFirst, iterSecond in collectionService:GetTagged("AuraRig") do
+        for iterFirst2, iterSecond2 in iterSecond:GetDescendants() do
+            if iterSecond2:GetAttribute("AURA_OBJECT") == true and (iterSecond2:IsA("ParticleEmitter") or iterSecond2:IsA("Beam") or iterSecond2:IsA("Trail") or iterSecond2:IsA("Light")) then
+                iterSecond2.Enabled = v33
+            end
+        end
+    end
+end
+
+return {
+    Dress = function(_, p8, p9)
+        apply(p8, p9)
+    end,
+    Init = function(_)
+        settingsController.Changed:Connect(function(p11)
+            if p11 == "Auras" or p11 == "Low Graphics" then
+                refreshAll()
+            end
+        end)
+    end,
+    Start = function(_)
+        local live: Instance = workspace:WaitForChild("Live")
+
+        for iterFirst, iterSecond in live:GetChildren() do
+            track(iterSecond)
+        end
+
+        live.ChildAdded:Connect(track)
+    end
+}

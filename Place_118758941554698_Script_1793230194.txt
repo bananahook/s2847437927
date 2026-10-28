@@ -1,0 +1,247 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.ChatController
+-- Took 0.03s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local httpService: HttpService = game:GetService("HttpService")
+local players: Players = game:GetService("Players")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local textChatService: TextChatService = game:GetService("TextChatService")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local staff = require(shared.Config.Staff)
+local format = require(shared.Util.Format)
+local remotes = require(shared.Net.Remotes)
+local color3 = Color3.fromRGB(255, 124, 80)
+local color32 = Color3.fromRGB(108, 82, 255)
+local color33 = Color3.fromRGB(255, 255, 255)
+local color34 = Color3.fromRGB(255, 186, 48)
+local color35 = Color3.fromRGB(102, 255, 94)
+local color36 = Color3.fromRGB(255, 62, 62)
+local color37 = Color3.fromRGB(172, 69, 69)
+local color38 = Color3.fromRGB(38, 96, 255)
+local color39 = Color3.fromRGB(240, 23, 255)
+local color310 = Color3.fromRGB(202, 202, 202)
+local color311 = Color3.fromRGB(255, 37, 237)
+local color312 = Color3.fromRGB(255, 58, 58)
+local color313 = Color3.fromRGB(255, 248, 37)
+local color314 = Color3.fromRGB(255, 209, 26)
+
+local function rgb(p1)
+    local rounded = math.round(p1.R * 255)
+    local rounded2 = math.round(p1.G * 255)
+    local rounded3 = math.round(p1.B * 255)
+
+    return (("rgb(%*,%*,%*)"):format(rounded, rounded2, rounded3))
+end
+local function tag(p2, p3, p4)
+    local rounded = math.round(p3.R * 255)
+    local rounded4 = math.round(p3.G * 255)
+    local rounded5 = math.round(p3.B * 255)
+
+    return (("<font color=\"%*\"><font face=\"%*\"><b>%*</b></font></font>"):format(("rgb(%*,%*,%*)"):format(rounded, rounded4, rounded5), p4, p2))
+end
+
+local t1: {[any]: any} = {
+    StreakRank = { Label = "🔥 Streak", Color = color3 },
+    RespectRank = { Label = "Respect", Color = color32 },
+    KillsRank = { Label = "Kills", Color = color33 },
+    ClansRank = { Label = "Clan", Color = color34 },
+    LunchMoneyRank = { Label = "Money", Color = color35 },
+    LevelRank = { Label = "Level", Color = color36 },
+    BountiesRank = { Label = "💸 Bounty", Color = color37 }
+}
+
+local function bestRank(p5)
+    local t4 = nil
+
+    for key, value in t1 do
+        local attributeValue = p5:GetAttribute(key)
+
+        if typeof(attributeValue) == "number" and attributeValue > 0 and (not t4 or attributeValue < t4.Rank) then
+            t4 = { Rank = attributeValue, Spec = value }
+        end
+    end
+
+    return t4
+end
+
+local t2: {[any]: any} = {}
+
+local function customTag(p6)
+    local customTag = p6:GetAttribute("CustomTag")
+
+    if typeof(customTag) == "string" then
+        local v48 = t2[p6]
+
+        if v48 and customTag == v48.Json then
+            return v48.Html, v48.Replaces
+        end
+
+        local ok, result = pcall(httpService.JSONDecode, httpService, customTag)
+
+        if ok and typeof(result) == "table" and typeof(result.Text) == "string" then
+            local v51 = if typeof(result.Color) == "table" then Color3.fromRGB(result.Color[1] or 255, result.Color[2] or 255, result.Color[3] or 255) else Color3.new(1, 1, 1)
+            local v52 = (if typeof(result.Stroke) == "table" then Color3.fromRGB(result.Stroke[1] or 0, result.Stroke[2] or 0, result.Stroke[3] or 0) else Color3.new()):ToHex()
+            local numberValue: number? = tonumber(result.StrokeTransparency)
+            local v54 = ("<stroke color=\"#%*\" joins=\"miter\" thickness=\".5\" transparency=\"%*\">[%*]</stroke>"):format(v52, numberValue or 0.6, result.Text)
+            local text: string = tostring(result.Font or "Highway")
+            local rounded = math.round(v51.R * 255)
+            local rounded6 = math.round(v51.G * 255)
+            local rounded7 = math.round(v51.B * 255)
+            local s1: string = ("<font color=\"%*\"><font face=\"%*\"><b>%*</b></font></font>"):format(("rgb(%*,%*,%*)"):format(rounded, rounded6, rounded7), text, v54) .. " 〣 "
+
+            t2[p6] = {
+                Json = customTag,
+                Html = s1,
+                Replaces = if result.ReplaceDefaults == true then true else false
+            }
+
+            return s1, result.ReplaceDefaults == true
+        end
+
+        return nil, false
+    end
+
+    t2[p6] = nil
+
+    return nil, false
+end
+
+local t3: {[any]: any} = {
+    Owner = {
+        Text = "[OWNER]",
+        Stroke = "#2679ff",
+        StrokeTransparency = 0.8,
+        Color = color38
+    },
+    Developer = {
+        Text = "[DEV]",
+        Stroke = "#ff12c4",
+        StrokeTransparency = 0.6,
+        Color = color39
+    },
+    Manager = {
+        Text = "[MANAGER]",
+        Stroke = "#737373",
+        StrokeTransparency = 0.6,
+        Color = color310
+    }
+}
+
+local function prefixFor(player)
+    local t5: {[any]: any} = {}
+    local v62 = bestRank(player)
+
+    if v62 then
+        local v63 = ("[#%* %*]"):format(format.Commas(v62.Rank), v62.Spec.Label)
+        local SpecColor = v62.Spec.Color
+        local rounded = math.round(SpecColor.R * 255)
+        local rounded8 = math.round(SpecColor.G * 255)
+        local rounded9 = math.round(SpecColor.B * 255)
+        local v68 = ("<font color=\"%*\"><font face=\"Cartoon\"><b>%*</b></font></font>"):format(("rgb(%*,%*,%*)"):format(rounded, rounded8, rounded9), v63)
+
+        table.insert(t5, v68 .. " 〢 ")
+    end
+
+    local v69, v70 = customTag(player)
+
+    if v69 then
+        table.insert(t5, v69)
+    end
+
+    if v70 then
+        if player:GetAttribute("HasVIP") == true then
+            local v71 = color313
+            local rounded = math.round(v71.R * 255)
+            local rounded10 = math.round(v71.G * 255)
+            local rounded11 = math.round(v71.B * 255)
+            local v75 = ("<font color=\"%*\"><font face=\"Cartoon\"><b>[VIP]</b></font></font>"):format((("rgb(%*,%*,%*)"):format(rounded, rounded10, rounded11)))
+
+            table.insert(t5, v75 .. " 〣 ")
+        end
+
+        return table.concat(t5)
+    end
+
+    if player:GetAttribute("IsCC") == true then
+        local v76 = color312
+        local rounded = math.round(v76.R * 255)
+        local rounded12 = math.round(v76.G * 255)
+        local rounded13 = math.round(v76.B * 255)
+        local v80 = ("<font color=\"%*\"><font face=\"Highway\"><b>[CONTENT CREATOR]</b></font></font>"):format((("rgb(%*,%*,%*)"):format(rounded, rounded12, rounded13)))
+
+        table.insert(t5, v80 .. " 〣 ")
+    end
+
+    if player:GetAttribute("IsStaff") == true then
+        local v81 = color311
+        local rounded = math.round(v81.R * 255)
+        local rounded14 = math.round(v81.G * 255)
+        local rounded15 = math.round(v81.B * 255)
+        local v85 = ("<font color=\"%*\"><font face=\"Highway\"><b>[STAFF]</b></font></font>"):format((("rgb(%*,%*,%*)"):format(rounded, rounded14, rounded15)))
+
+        table.insert(t5, v85 .. " 〣 ")
+    end
+
+    local v86 = t3[staff.Developers[player.UserId] or ""]
+
+    if v86 then
+        local v87 = ("<stroke color=\"%*\" joins=\"miter\" thickness=\".5\" transparency=\"%*\">%*</stroke>"):format(v86.Stroke, v86.StrokeTransparency, v86.Text)
+        local v88 = v86.Color
+        local rounded = math.round(v88.R * 255)
+        local rounded16 = math.round(v88.G * 255)
+        local rounded17 = math.round(v88.B * 255)
+        local v92 = ("<font color=\"%*\"><font face=\"Highway\"><b>%*</b></font></font>"):format(("rgb(%*,%*,%*)"):format(rounded, rounded16, rounded17), v87)
+
+        table.insert(t5, v92 .. " 〣 ")
+    end
+
+    if player:GetAttribute("HasVIP") == true then
+        local v93 = color313
+        local rounded = math.round(v93.R * 255)
+        local rounded18 = math.round(v93.G * 255)
+        local rounded19 = math.round(v93.B * 255)
+        local v97 = ("<font color=\"%*\"><font face=\"Cartoon\"><b>[VIP]</b></font></font>"):format((("rgb(%*,%*,%*)"):format(rounded, rounded18, rounded19)))
+
+        table.insert(t5, v97 .. " 〣 ")
+    end
+
+    return table.concat(t5)
+end
+
+return {
+    Init = function(_)
+        players.PlayerRemoving:Connect(function(player: Player)
+            t2[player] = nil
+        end)
+
+        function textChatService.OnIncomingMessage(p10)
+            local textChatMessageProperties: TextChatMessageProperties = Instance.new("TextChatMessageProperties")
+            local textSource = p10.TextSource
+            local v104 = textSource and players:GetPlayerByUserId(textSource.UserId)
+
+            if v104 then
+                textChatMessageProperties.PrefixText = prefixFor(v104) .. p10.PrefixText
+            end
+
+            return textChatMessageProperties
+        end
+
+        remotes.Client("LiveEventsService").GlobalMessage:Connect(function(p11)
+            local v106 = textChatService:FindFirstChild("TextChannels") and textChatService.TextChannels:FindFirstChild("RBXGeneral")
+
+            if v106 then
+                local v107 = color314
+                local rounded = math.round(v107.R * 255)
+                local rounded20 = math.round(v107.G * 255)
+                local rounded21 = math.round(v107.B * 255)
+                local v111 = ("<font color=\"%*\"><b>[GLOBAL]</b> %*</font>"):format(("rgb(%*,%*,%*)"):format(rounded, rounded20, rounded21), p11)
+
+                v106:DisplaySystemMessage(v111)
+            end
+        end)
+    end,
+    Start = function(_)
+    end
+}

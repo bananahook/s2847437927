@@ -1,0 +1,349 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.CombatController
+-- Took 0.07s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local players: Players = game:GetService("Players")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local classes = require(shared.Config.Classes)
+local places = require(shared.Config.Places)
+local ranked = require(shared.Config.Ranked)
+local remotes = require(shared.Net.Remotes)
+local movers = require(shared.Util.Movers)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local clientCombat = client.Combat
+local attackState = require(clientCombat.AttackState)
+local attacks = require(clientCombat.Attacks)
+local hitWindow = require(clientCombat.HitWindow)
+local hitboxes = require(clientCombat.Hitboxes)
+local weave = require(clientCombat.Weave)
+local clientControllers = client.Controllers
+local characterController = require(clientControllers.CharacterController)
+local inputController = require(clientControllers.InputController)
+local LocalPlayer: Player = players.LocalPlayer
+local attackStateActive = attackState.Active
+local u21 = nil
+local t1: {[any]: any} = {
+    Start = {},
+    M1 = {}
+}
+
+local function intercepted(p1)
+    for iterFirst, iterSecond in t1[p1], nil, nil do
+        if iterSecond() then
+            return true
+        end
+    end
+
+    return false
+end
+local function onAttack()
+    if attackState.CanAct() then
+        local v35: boolean = false
+        local u36
+
+        for iterFirst, iterSecond in t1.Start, nil, nil do
+            if iterSecond() then
+                u36 = true
+                v35 = true
+
+                break
+            end
+        end
+
+        if not v35 then
+            u36 = false
+        end
+
+        if u36 then
+        elseif characterController:Is("Sprinting") and attackStateActive.HeavyPunch then
+        elseif attackStateActive.CanHeavy and not attackStateActive.HeavyPunch and not attacks.HoldingWeapon() and not places.IsPro() and not ranked.IsRatedMatch() then
+            attacks.Heavy()
+        elseif not characterController:Is("Sprinting") then
+            local v39: boolean = false
+            local u40
+
+            for iterFirst2, iterSecond2 in t1.M1, nil, nil do
+                if iterSecond2() then
+                    u40 = true
+                    v39 = true
+
+                    break
+                end
+            end
+
+            if not v39 then
+                u40 = false
+            end
+
+            if u40 then
+                return
+            end
+
+            attacks.M1()
+
+            return
+        end
+
+        return
+    end
+end
+local function onSprintKey(p2)
+    local v44 = characterController
+
+    if p2 then
+        if not v44:Is("Occupied") and not v44:Is("Shoved") and not v44:Is("Knocked") and not attackStateActive.Weaving and attackStateActive.CanAttack then
+            attackStateActive.CanHeavy = true
+        end
+
+        if not places.IsPro() and attackStateActive.CanAttack and not v44:Is("Shoved") and not v44:Is("Knocked") and not attackStateActive.Weaving and not v44:Is("Skating") and not v44:Is("Biking") and (not v44:Is("Occupied") or not not v44:Is("Holding")) and not v44:Is("Sprinting") then
+            u21.Sprint:Fire(true)
+
+            return
+        end
+    else
+        attackStateActive.CanHeavy = false
+
+        if not places.IsPro() and v44:Is("Sprinting") then
+            u21.Sprint:Fire(false)
+        end
+    end
+end
+local function cancelOnUnequip()
+    local characterControllerRoot = characterController.Root
+
+    attackStateActive.M1Patch = false
+    weave.Reset()
+
+    if attackState.Cancel() then
+        hitWindow.Stop()
+        movers.Remove(characterControllerRoot, "SwingMove")
+    end
+end
+local function onFightingChanged(p8)
+    if p8 then
+        hitWindow.Stop()
+        attackStateActive.M1Patch = false
+
+        return
+    end
+
+    local characterControllerRoot = characterController.Root
+
+    attackStateActive.M1Patch = false
+    weave.Reset()
+
+    if attackState.Cancel() then
+        hitWindow.Stop()
+        movers.Remove(characterControllerRoot, "SwingMove")
+    end
+end
+local function reequipFists()
+    local Humanoid = characterController.Humanoid
+
+    if attackStateActive.ReequipFists and Humanoid then
+        attackStateActive.ReequipFists = false
+
+        local fight = LocalPlayer.Backpack:FindFirstChild("Fight")
+
+        if fight and characterController:IsAlive() then
+            Humanoid:EquipTool(fight)
+        end
+
+        return
+    end
+end
+local function refreshBusy()
+    local player = characterController
+    local Humanoid = player.Humanoid
+    local v52 = player:Is("Occupied")
+
+    if v52 then
+        v52 = not player:Is("Holding")
+
+        if v52 then
+            v52 = not player:Is("Throwing")
+
+            if v52 then
+                v52 = not player:Is("Shoved")
+            end
+        end
+    end
+
+    if v52 == attackStateActive.Busy or not Humanoid then
+        return
+    end
+
+    attackStateActive.Busy = v52
+
+    if v52 then
+        hitWindow.Stop()
+        movers.Remove(player.Root, "WeaveMove")
+
+        if player.Character and player.Character:FindFirstChild("Fight") then
+            attackStateActive.ReequipFists = true
+            Humanoid:UnequipTools()
+
+            return
+        end
+    else
+        local Humanoid2 = characterController.Humanoid
+
+        if attackStateActive.ReequipFists then
+            if not Humanoid2 then
+                return
+            end
+
+            attackStateActive.ReequipFists = false
+
+            local fight = LocalPlayer.Backpack:FindFirstChild("Fight")
+
+            if fight and characterController:IsAlive() then
+                Humanoid2:EquipTool(fight)
+            end
+        end
+    end
+end
+local function onStateChanged(p9, p10)
+    if p9 == "Fighting" then
+        if p10 == true then
+            hitWindow.Stop()
+            attackStateActive.M1Patch = false
+
+            return
+        end
+
+        local characterControllerRoot = characterController.Root
+
+        attackStateActive.M1Patch = false
+        weave.Reset()
+
+        if attackState.Cancel() then
+            hitWindow.Stop()
+            movers.Remove(characterControllerRoot, "SwingMove")
+
+            return
+        end
+    else
+        if p9 == "Occupied" or p9 == "Holding" or p9 == "Shoved" and p10 == true then
+            refreshBusy()
+
+            return
+        end
+
+        if p9 == "Knocked" and p10 == true then
+            hitWindow.Stop()
+
+            return
+        end
+
+        if p9 == "WeaveStun" then
+            if p10 == true then
+                hitWindow.Stop()
+
+                if attackStateActive.CurrentM1 then
+                    attackStateActive.CurrentM1:AdjustSpeed(0.05)
+
+                    return
+                end
+            elseif attackStateActive.CurrentM1 then
+                local v58 = attackState.StyleName()
+                local v59 = classes[v58]
+
+                attackStateActive.CurrentM1:AdjustSpeed(v59 and v59.Speed or 1)
+
+                return
+            end
+        elseif p9 == "Sprinting" then
+            if p10 == true and characterController:Get("ATrain") == true then
+                hitWindow.Start("ATrain")
+
+                return
+            end
+
+            if p10 == false and characterController:Get("ATrain") == true then
+                hitWindow.Stop()
+
+                return
+            end
+        elseif p9 == "Style" then
+            hitWindow.WireM1s(attackState.StyleSet())
+        end
+    end
+end
+local function onCharacterAdded(p11, p12)
+    attackState.Reset()
+    hitboxes.Attach(p11, p12)
+    hitWindow.WireM1s(attackState.StyleSet())
+    p12:Connect(characterController.StateChanged, onStateChanged)
+    p12:Connect(p11.ChildRemoved, function(p13)
+        if p13.Name == "Fight" and p13:IsA("Tool") then
+            local characterControllerRoot = characterController.Root
+
+            attackStateActive.M1Patch = false
+            weave.Reset()
+
+            if attackState.Cancel() then
+                hitWindow.Stop()
+                movers.Remove(characterControllerRoot, "SwingMove")
+            end
+        end
+    end)
+
+    if characterController:Is("Fighting") then
+        hitWindow.Stop()
+        attackStateActive.M1Patch = false
+    end
+end
+
+return {
+    PlayWeave = function(_, p4, p5)
+        weave.Play(p4, p5)
+    end,
+    IsWeaving = function(_)
+        return attackStateActive.Weaving
+    end,
+    StopWeave = function(_)
+        weave.StopTrack()
+    end,
+    AddAttackIntercept = function(_, p15, p16)
+        table.insert(t1[p15], p16)
+    end,
+    Init = function(_)
+        u21 = remotes.Client("CombatService")
+        inputController.Began:Connect(function(p18)
+            if not characterController:IsAlive() then
+            elseif p18 == "Struggle" then
+            elseif characterController.Humanoid:GetState() == Enum.HumanoidStateType.FallingDown or characterController.Humanoid:GetState() == Enum.HumanoidStateType.GettingUp then
+            elseif p18 == "Sprint" then
+                onSprintKey(true)
+            elseif p18 == "Attack" then
+                onAttack()
+            elseif p18 == "Shove" then
+                attacks.Shove()
+            elseif p18 == "Slam" then
+                attacks.Slam()
+            elseif p18 == "Stomp" then
+                attacks.Stomp()
+            elseif p18 == "Weave" then
+                weave.Set(true)
+            end
+        end)
+        inputController.Ended:Connect(function(p19)
+            if p19 == "Weave" then
+                weave.Set(false)
+            elseif p19 == "Sprint" then
+                attackStateActive.CanHeavy = false
+
+                if not places.IsPro() and characterController:Is("Sprinting") then
+                    u21.Sprint:Fire(false)
+                end
+            end
+        end)
+        characterController.CharacterAdded:Connect(onCharacterAdded)
+    end,
+    Start = function(_)
+    end
+}

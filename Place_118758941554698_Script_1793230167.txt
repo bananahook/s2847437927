@@ -1,0 +1,555 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Combat.Hitboxes
+-- Took 0.05s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local raycastHitboxV4 = require(replicatedStorage.Packages.RaycastHitboxV4)
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local characterUtil = require(shared.Util.CharacterUtil)
+local u5 = nil
+local t1: {[any]: any} = {}
+local t2: {[any]: any} = {}
+local u8 = nil
+local u9 = nil
+local u10 = false
+local raycastParams = RaycastParams.new()
+
+raycastParams.FilterType = Enum.RaycastFilterType.Include
+raycastParams.IgnoreWater = true
+
+local function refreshParams()
+    local filterDescendantsInstances: {[any]: any} = {}
+
+    for iterFirst, value in { "Live", "_BOSSES" }, nil, nil do
+        local value: Instance = workspace:FindFirstChild(value)
+
+        if value then
+            table.insert(filterDescendantsInstances, value)
+        end
+    end
+
+    raycastParams.FilterDescendantsInstances = filterDescendantsInstances
+end
+local function alive(p1)
+    return p1.Hitbox.HitStop ~= nil
+end
+local function isPoint(p2)
+    local u34 = false
+
+    if p2.Name == "DmgPoint" then
+        u34 = p2:IsA("Attachment")
+
+        if u34 then
+            u34 = not p2:IsA("Bone")
+        end
+    end
+
+    return u34
+end
+local function hasPoints(p3)
+    for iterFirst, iterSecond in p3:GetDescendants() do
+        local u38 = false
+
+        if iterSecond.Name == "DmgPoint" then
+            u38 = iterSecond:IsA("Attachment")
+
+            if u38 then
+                u38 = not iterSecond:IsA("Bone")
+            end
+        end
+
+        if u38 then
+            return true
+        end
+    end
+
+    return false
+end
+local function destroyHitbox(p4)
+    if p4 and p4.HitStop ~= nil then
+        p4:Destroy()
+    end
+end
+local function forget(p5)
+    local v41 = t2[p5]
+
+    if not v41 then
+        return
+    end
+
+    t2[p5] = nil
+
+    for key, value in t1 do
+        if v41 == value.Hitbox then
+            t1[key] = nil
+        end
+    end
+
+    if v41 and v41.HitStop ~= nil then
+        v41:Destroy()
+    end
+end
+local function hitboxFor(p6)
+    local v45 = t2[p6]
+
+    if v45 and v45.HitStop ~= nil then
+        return v45
+    end
+
+    v45 = raycastHitboxV4.new(p6)
+    v45.RaycastParams = raycastParams
+    v45.Visualizer = u10
+    t2[p6] = v45
+
+    return v45
+end
+local function register(p7, p8, p9)
+    local v49 = t2[p8]
+
+    if not v49 or v49.HitStop == nil then
+        v49 = raycastHitboxV4.new(p8)
+        v49.RaycastParams = raycastParams
+        v49.Visualizer = u10
+        t2[p8] = v49
+    end
+
+    t1[p7] = { Hitbox = v49, Owner = p9 }
+end
+local function pointPart(p10)
+    local v51 = p10.Parent
+
+    if v51 and v51:IsA("BasePart") then
+        return v51
+    end
+
+    return p10:FindFirstAncestorWhichIsA("BasePart")
+end
+local function unregisterOwnedBy(p11)
+    for key, value in t1 do
+        if p11 == value.Owner or value.Owner:IsDescendantOf(p11) then
+            t1[key] = nil
+        end
+    end
+
+    for key2, value2 in t2 do
+        if key2 == p11 or key2:IsDescendantOf(p11) then
+            t2[key2] = nil
+
+            if value2 and value2.HitStop ~= nil then
+                value2:Destroy()
+            end
+        end
+    end
+end
+local function scan(p12)
+    local v58 = t2[p12]
+
+    if v58 then
+        t2[p12] = nil
+
+        for key, value in t1 do
+            if v58 == value.Hitbox then
+                t1[key] = nil
+            end
+        end
+
+        if v58 and v58.HitStop ~= nil then
+            v58:Destroy()
+        end
+    end
+
+    if p12:IsA("BasePart") then
+        local v61, v62, v63 = p12:GetDescendants()
+        local v64: boolean = false
+        local u65
+
+        for iterFirst, iterSecond in v61, v62, v63 do
+            local u68 = false
+
+            if iterSecond.Name == "DmgPoint" then
+                u68 = iterSecond:IsA("Attachment")
+
+                if u68 then
+                    u68 = not iterSecond:IsA("Bone")
+                end
+            end
+
+            if u68 then
+                u65 = true
+                v64 = true
+
+                break
+            end
+        end
+
+        if not v64 then
+            u65 = false
+        end
+
+        if u65 then
+            local v69 = p12.Name
+            local v70 = t2[p12]
+
+            if not v70 or v70.HitStop == nil then
+                v70 = raycastHitboxV4.new(p12)
+                v70.RaycastParams = raycastParams
+                v70.Visualizer = u10
+                t2[p12] = v70
+            end
+
+            t1[v69] = { Hitbox = v70, Owner = p12 }
+        end
+
+        return
+    end
+
+    if not p12:IsA("Model") and not p12:IsA("Accessory") and not p12:IsA("Folder") then
+        return
+    end
+
+    v58 = false
+
+    for iterFirst2, iterSecond2 in p12:GetDescendants() do
+        if iterSecond2:GetAttribute("Hitbox") and iterSecond2:IsA("BasePart") then
+            local v73 = t2[iterSecond2]
+
+            if v73 then
+                t2[iterSecond2] = nil
+
+                for key2, value2 in t1 do
+                    if v73 == value2.Hitbox then
+                        t1[key2] = nil
+                    end
+                end
+
+                if v73 and v73.HitStop ~= nil then
+                    v73:Destroy()
+                end
+            end
+
+            v73 = iterSecond2.Name
+
+            local v76 = t2[iterSecond2]
+
+            if not v76 or v76.HitStop == nil then
+                v76 = raycastHitboxV4.new(iterSecond2)
+                v76.RaycastParams = raycastParams
+                v76.Visualizer = u10
+                t2[iterSecond2] = v76
+            end
+
+            t1[v73] = { Hitbox = v76, Owner = iterSecond2 }
+        else
+            local u77 = false
+
+            if iterSecond2.Name == "DmgPoint" then
+                u77 = iterSecond2:IsA("Attachment")
+
+                if u77 then
+                    u77 = not iterSecond2:IsA("Bone")
+                end
+            end
+
+            if u77 then
+                v58 = true
+
+                local v78 = iterSecond2.Parent
+
+                if v78 and v78:IsA("Bone") and not t1[v78.Name] then
+                    local v79 = v78.Name
+                    local v80 = t2[v78]
+
+                    if not v80 or v80.HitStop == nil then
+                        v80 = raycastHitboxV4.new(v78)
+                        v80.RaycastParams = raycastParams
+                        v80.Visualizer = u10
+                        t2[v78] = v80
+                    end
+
+                    t1[v79] = { Hitbox = v80, Owner = v78 }
+                end
+
+                local v81 = iterSecond2.Parent
+
+                v78 = if v81 and v81:IsA("BasePart") then v81 else iterSecond2:FindFirstAncestorWhichIsA("BasePart")
+
+                if v78 and v78 ~= p12 and not t1[v78.Name] then
+                    local v82 = v78.Name
+                    local v83 = t2[p12]
+
+                    if not v83 or v83.HitStop == nil then
+                        v83 = raycastHitboxV4.new(p12)
+                        v83.RaycastParams = raycastParams
+                        v83.Visualizer = u10
+                        t2[p12] = v83
+                    end
+
+                    t1[v82] = { Hitbox = v83, Owner = v78 }
+                end
+            end
+        end
+    end
+
+    if v58 then
+        local v84 = p12.Name
+        local v85 = t2[p12]
+
+        if not v85 or v85.HitStop == nil then
+            v85 = raycastHitboxV4.new(p12)
+            v85.RaycastParams = raycastParams
+            v85.Visualizer = u10
+            t2[p12] = v85
+        end
+
+        t1[v84] = { Hitbox = v85, Owner = p12 }
+    end
+end
+
+local t3: {[any]: any} = {}
+
+local function rescanFor(p13)
+    if u5 then
+        local u87 = false
+
+        if p13.Name == "DmgPoint" then
+            u87 = p13:IsA("Attachment")
+
+            if u87 then
+                u87 = not p13:IsA("Bone")
+            end
+        end
+
+        if not u87 then
+            return
+        end
+
+        local u88 = p13
+
+        while u88.Parent and u88.Parent ~= u5 do
+            u88 = u88.Parent
+        end
+
+        if u88.Parent == u5 and not t3[u88] then
+            t3[u88] = true
+            task.defer(function()
+                t3[u88] = nil
+
+                if u5 and u88.Parent == u5 then
+                    scan(u88)
+                end
+            end)
+
+            return
+        end
+
+        return
+    end
+end
+
+local module: {[any]: any} = {}
+
+function module.Attach(p14, p15)
+    module.Detach()
+    u5 = p14
+    u9 = p15
+    refreshParams()
+
+    for iterFirst, iterSecond in p14:GetChildren() do
+        scan(iterSecond)
+    end
+
+    u9:Connect(p14.ChildAdded, function(p16)
+        task.defer(scan, p16)
+    end)
+    u9:Connect(p14.ChildRemoved, function(p17)
+        unregisterOwnedBy(p17)
+    end)
+    u9:Connect(p14.DescendantAdded, rescanFor)
+    u9:Add(function()
+        module.Detach()
+    end)
+end
+function module.Detach()
+    module.Stop()
+    table.clear(t1)
+
+    for key, value in t2 do
+        t2[key] = nil
+
+        if value and value.HitStop ~= nil then
+            value:Destroy()
+        end
+    end
+
+    u5 = nil
+    u9 = nil
+end
+function module.Has(p18)
+    return t1[p18] ~= nil
+end
+function module.SetVisualizer(visualizer)
+    u10 = visualizer
+
+    for key, value in t2 do
+        if value.HitStop ~= nil then
+            value.Visualizer = visualizer
+        end
+    end
+
+    if not visualizer then
+        require(replicatedStorage.Packages.RaycastHitboxV4.VisualizerCache):Clear()
+    end
+end
+function module.ForLimb(p20)
+    if u5 and u5:FindFirstChild("Weapon") and not u5:FindFirstChild("WeaponLeft") and t1.Weapon then
+        return "Weapon"
+    end
+
+    if t1[p20 .. "Weapon"] then
+        return p20 .. "Weapon"
+    end
+
+    if t1[p20] then
+        return p20
+    end
+
+    return nil
+end
+local function openGroup(p21, p22)
+    local t6: {[any]: any} = {
+        Connections = {},
+        Hitboxes = {}
+    }
+
+    u8.Groups[p21] = t6
+
+    for iterFirst, iterSecond in p22 do
+        local v105 = t1[iterSecond]
+
+        if v105 and v105.Hitbox.HitStop ~= nil then
+            local u106: boolean = false
+
+            for iterFirst2, iterSecond2 in u8.Groups, nil, nil do
+                if table.find(iterSecond2.Hitboxes, v105.Hitbox) then
+                    u106 = true
+
+                    break
+                end
+            end
+
+            if not u106 then
+                table.insert(t6.Hitboxes, v105.Hitbox)
+
+                local v109 = u8
+
+                table.insert(t6.Connections, v105.Hitbox.OnHit:Connect(function(p23, _, p25)
+                    if u8 ~= v109 then
+                        return
+                    end
+
+                    local v134 = characterUtil.FromPart(p23)
+
+                    if u5 and not p23:IsDescendantOf(u5) and v134 then
+                        if v109.Multi then
+                            if v109.Seen[v134] then
+                                return
+                            end
+
+                            v109.Seen[v134] = true
+                        else
+                            if v109.Landed then
+                                return
+                            end
+
+                            v109.Landed = true
+                            module.Stop()
+                        end
+
+                        v109.OnHit(p23, p25)
+
+                        return
+                    end
+                end))
+                v105.Hitbox:HitStart()
+            end
+        else
+            t1[iterSecond] = nil
+        end
+    end
+end
+local function closeGroup(p26)
+    for iterFirst, iterSecond in p26.Connections, nil, nil do
+        iterSecond:Disconnect()
+    end
+
+    for iterFirst2, iterSecond2 in p26.Hitboxes, nil, nil do
+        if iterSecond2.HitStop ~= nil then
+            iterSecond2:HitStop()
+        end
+    end
+end
+function module.Start(p27, p28, p29, p30)
+    module.Stop()
+    u8 = {
+        Landed = false,
+        Seen = {},
+        OnHit = p28,
+        Multi = if p29 == true then true else false,
+        Groups = {}
+    }
+    openGroup(p30 or "Main", p27)
+end
+function module.IsOpen()
+    return u8 ~= nil
+end
+function module.Add(p31, p32)
+    if not u8 then
+        return
+    end
+
+    if u8.Groups[p31] then
+        closeGroup(u8.Groups[p31])
+        u8.Groups[p31] = nil
+    end
+
+    openGroup(p31, p32)
+end
+function module.StopGroup(p33)
+    local v122 = u8 and u8.Groups[p33]
+
+    if not v122 then
+        return false
+    end
+
+    closeGroup(v122)
+    u8.Groups[p33] = nil
+
+    return true
+end
+function module.Stop()
+    if u8 then
+        for iterFirst, iterSecond in u8.Groups, nil, nil do
+            closeGroup(iterSecond)
+        end
+
+        u8 = nil
+    end
+
+    for key, value in t1 do
+        if value.Hitbox.HitStop == nil then
+            t1[key] = nil
+        end
+    end
+
+    for key2, value2 in t2 do
+        if value2.HitStop == nil then
+            t2[key2] = nil
+        else
+            value2:HitStop()
+        end
+    end
+end
+
+return module

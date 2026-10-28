@@ -1,0 +1,85 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.GraphicsController
+-- Took 0.03s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local tweenService: TweenService = game:GetService("TweenService")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local world = require(shared.Config.World)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local settingsController = require(client.Controllers.SettingsController)
+local lowGraphics = require(client.World.LowGraphics)
+local breakables = require(client.World.Breakables)
+local t1: {[any]: any} = {}
+
+local function gatherLights()
+    for iterFirst, iterSecond in workspace:GetChildren() do
+        if iterSecond.Name ~= "Live" and iterSecond.Name ~= "Debris" and not iterSecond:IsA("Camera") and not iterSecond:IsA("Terrain") then
+            for iterFirst2, iterSecond2 in iterSecond:GetDescendants() do
+                if iterSecond2:IsA("Light") then
+                    t1[iterSecond2] = { Color = iterSecond2.Color, Brightness = iterSecond2.Brightness }
+                end
+            end
+        end
+    end
+end
+local function applyLights()
+    local v17 = settingsController:Get("Lights")
+
+    if v17 then
+        v17 = not settingsController:Get("Low Graphics")
+    end
+
+    for iterValue in t1 do
+        iterValue.Enabled = v17
+    end
+end
+local function applyTint()
+    local schoolLightColor: any = workspace:GetAttribute("SchoolLightColor")
+    local schoolLightBrightness: any = workspace:GetAttribute("SchoolLightBrightness")
+    local tweenInfo = TweenInfo.new(world.Lights.TweenSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+    for key, value in t1 do
+        tweenService:Create(key, tweenInfo, {
+            Color = schoolLightColor or value.Color,
+            Brightness = schoolLightBrightness or value.Brightness
+        }):Play()
+    end
+end
+
+return {
+    Init = function(_)
+    end,
+    Start = function(_)
+        task.spawn(function()
+            if not workspace:WaitForChild("Map", 60) then
+                return
+            end
+
+            gatherLights()
+            settingsController:Observe("Low Graphics", function(p3)
+                local v29 = settingsController:Get("Lights")
+
+                if v29 then
+                    v29 = not settingsController:Get("Low Graphics")
+                end
+
+                for iterValue in t1 do
+                    iterValue.Enabled = v29
+                end
+
+                breakables.SetLowGraphics(p3)
+                lowGraphics.Set(p3)
+            end)
+            settingsController:Observe("Lights", applyLights)
+
+            for iterFirst, value in { "SchoolLightColor", "SchoolLightBrightness" }, nil, nil do
+                workspace:GetAttributeChangedSignal(value):Connect(applyTint)
+            end
+
+            applyTint()
+        end)
+    end
+}

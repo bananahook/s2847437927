@@ -1,0 +1,86 @@
+-- Script Path: game:GetService("ReplicatedStorage").Client.Controllers.StruggleController
+-- Took 0.07s to decompile.
+-- Executor: Delta (1.0.743.1136)
+
+-- Decompiled using ByteFall
+-- discord.gg/pHTnqmmWzk
+local contextActionService: ContextActionService = game:GetService("ContextActionService")
+local replicatedStorage: ReplicatedStorage = game:GetService("ReplicatedStorage")
+local shared: Instance = replicatedStorage:WaitForChild("Shared")
+local assets = require(shared.Config.Assets)
+local remotes = require(shared.Net.Remotes)
+local client: Instance = replicatedStorage:WaitForChild("Client")
+local struggleFrame = require(client.UI.StruggleFrame)
+local struggleCamera = require(client.Combat.StruggleCamera)
+local clientControllers = client.Controllers
+local hudController = require(clientControllers.HUDController)
+local inputController = require(clientControllers.InputController)
+local characterController = require(clientControllers.CharacterController)
+
+local function bindGamepad(p1)
+    contextActionService:BindActionAtPriority("FIASStruggle", function(_, p3)
+        if p3 == Enum.UserInputState.Begin then
+            p1()
+        end
+
+        return Enum.ContextActionResult.Sink
+    end, false, Enum.ContextActionPriority.High.Value, table.unpack(inputController:GamepadKeys("Struggle")))
+end
+local function unbindGamepad()
+    contextActionService:UnbindAction("FIASStruggle")
+end
+
+return {
+    Init = function(_)
+        local combatService = remotes.Client("CombatService")
+        local struggleFrameSetup = struggleFrame.Setup
+        local other = hudController:GetGui():WaitForChild("Other")
+
+        struggleFrameSetup(other:WaitForChild("Struggle_Frame"))
+
+        local function tap()
+            combatService.Struggle:Fire()
+        end
+        local function press()
+            assets.PlayUISound("Click")
+            combatService.Struggle:Fire()
+        end
+
+        inputController.Began:Connect(function(p5)
+            if p5 == "Struggle" and characterController:Is("Struggling") then
+                assets.PlayUISound("Click")
+                combatService.Struggle:Fire()
+            end
+        end)
+        combatService.StruggleStarted:Connect(function(p6, p7, p8)
+            struggleFrame.Show(p6, p7, p8, inputController.Device, tap)
+            struggleCamera.Start(p6 == characterController.Character, p8)
+
+            local v29: (...any) -> ...any = press
+
+            contextActionService:BindActionAtPriority("FIASStruggle", function(_, p10)
+                if p10 == Enum.UserInputState.Begin then
+                    v29()
+                end
+
+                return Enum.ContextActionResult.Sink
+            end, false, Enum.ContextActionPriority.High.Value, table.unpack(inputController:GamepadKeys("Struggle")))
+        end)
+        combatService.StruggleUpdated:Connect(function(p11, p12)
+            struggleFrame.Update(p11, p12)
+            struggleCamera.Update(p11)
+        end)
+        combatService.StruggleEnded:Connect(function()
+            struggleFrame.Hide()
+            struggleCamera.Stop()
+            contextActionService:UnbindAction("FIASStruggle")
+        end)
+        characterController.CharacterRemoving:Connect(function()
+            struggleFrame.Hide()
+            struggleCamera.Stop()
+            contextActionService:UnbindAction("FIASStruggle")
+        end)
+    end,
+    Start = function(_)
+    end
+}
